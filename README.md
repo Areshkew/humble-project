@@ -6,8 +6,8 @@ Todos los cambios serán documentados en este archivo.
 
 ### Added
 
-- v1.1 Brazilian Portuguese translation.
-- v1.1 German Translation nain
+- v1.1 Brazilian Portuguese translation phonk.
+- v1.1 German Translation 
 - v1.1 Spanish translation.
 - v1.1 Italian translation.
 - v1.1 Polish translation.
