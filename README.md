@@ -1,20 +1,47 @@
+# Instrucciones
+1. Revisa el archivo ".env", asegurate de que los datos de conexión a la base de datos sean correctos.
+  En este archivo se encuentran las variables de entorno que se usaran para la conexión a la base de datos.
+  Modifica los datos según tus necesidades, obligaciones o requerimientos.
+
+2. Instala los requerimientos en tu entorno de python con el comando:
+  ```bash
+  pip install -r requirements.txt
+  ```
+3. Ejecuta el archivo "main.py" con el comando:
+  ```bash
+    python main.py
+  ```
+
+---
+
+# Programas Necesarios
+- Para la base de datos se usará PostgreSQL, por lo que se debe tener instalado en el sistema. 
+  Si no se tiene instalado, se puede descargar desde su [página oficial](https://www.postgresql.org/download/).
+
+---
+
 # Registro De Cambios
 
 Todos los cambios serán documentados en este archivo.
 
-## [Unreleased]
+## [Sin lanzar]
 
 
-## [0.0.1] - 2014-05-31
+## [0.0.1] - 2024-03
 
-### Fixed
-### Added
-### Removed
-### Changed
+### Arreglado
+### Añadido
+  #### Desarrollo: 
+    - Conexión a la base de datos.
+    - Mapeo de la estructura de la base de datos (repositories), para su uso a través del ORM.
+    - Clase del usuario (models), usada para la verificación de datos en los futuros endpoints.
+    - Controlador del usuario (usercontroller), se usará para la creación de endpoints.
+    - Servicio del usuario (userservice), se usará para crear las operaciones que se podran realizar a través del controlador.
+    - Creación de usuario root al iniciar el servidor. 
+  
+  #### Caracteristicas:
+    - 
 
-- This CHANGELOG file to hopefully serve as an evolving example of a
-  standardized open source project CHANGELOG.
-- CNAME file to enable GitHub Pages custom domain.
-- README now contains answers to common questions about CHANGELOGs.
-- Good examples and basic guidelines, including proper date formatting.
-- Counter-examples: "What makes unicorns cry?".
+### Removido
+### Cambiado
+
