@@ -4,6 +4,7 @@ from functools import wraps
 from sqlalchemy.ext.asyncio import AsyncSession, AsyncEngine
 from typing import AsyncGenerator
 from app.repositories.models import *
+import bcrypt
 
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     """
@@ -25,6 +26,30 @@ async def create_tables(engine: AsyncEngine) -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
+def hash_password(password: str) -> str:
+    """
+    Función para encriptar una contraseña utilizando bcrypt.
+    
+    Recibe un password(str) la cual es la contraseña en texto plano.
+    
+    Retorna un str el cual seria el hast de la constraseña ya encriptada.
+
+    """
+    salt = bcrypt.gensalt()
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return hashed_password.decode('utf-8')
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """
+    Función para verificar si una contraseña coincide con su versión encriptada.
+    
+    Recibe un plain_password(str) el cual es la contraseña ingresada en texto plano, 
+    el hashed_password(str) la cual seria el hash de la contraseña encriptada.
+
+    Retorna un bool, True si la contraseña coincide y False en caso contrario
+
+    """
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
 def db_operation(db_session_key: str = 'db'):
     """

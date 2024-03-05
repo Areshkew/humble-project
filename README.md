@@ -32,6 +32,8 @@ Todos los cambios serán documentados en este archivo.
 ### Arreglado
 ### Añadido
   #### Desarrollo: 
+    - Utilidad de encriptacion de contraseñas 
+    - Utilidad de desencriptacion de contraseñas
     - Conexión a la base de datos.
     - Mapeo de la estructura de la base de datos (repositories), para su uso a través del ORM.
     - Clase del usuario (models), usada para la verificación de datos en los futuros endpoints.
