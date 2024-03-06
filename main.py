@@ -24,8 +24,10 @@ class ServerBootstrap:
     @asynccontextmanager
     @staticmethod
     async def start_up_events(app: FastAPI):
+        # Crear las tablas en la base de datos
         await create_tables(engine)
 
+        # Crear el usuario root
         async for session in get_db_session():
             try:
                 user_service = UserService()
