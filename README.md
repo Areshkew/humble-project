@@ -20,7 +20,7 @@
 
 - Para el manejo del jwt, deberás crear una key RSA pública y privada desde aqui:
   [Generador de llaves RSA](https://cryptotools.net/rsagen) 
-  y guardarlas en la carpeta "keys" con los nombres "private.pem" y "public.pem" respectivamente.
+  y guardarlas en la carpeta "keys" con los nombres "private_key.pem" y "public_key.pem" respectivamente.
 
 ---
 
@@ -44,7 +44,6 @@ Todos los cambios serán documentados en este archivo.
     - Controlador del usuario (usercontroller), se usará para la creación de endpoints.
     - Servicio del usuario (userservice), se usará para crear las operaciones que se podran realizar a través del controlador.
     - Creación de usuario root al iniciar el servidor. 
-    - Encriptación y desencriptación de contraseñas.
   
   #### Caracteristicas:
     - Inicio y registro de cuentas.
