@@ -14,9 +14,13 @@
 
 ---
 
-# Programas Necesarios
+# Programas Necesarios o Dependencias
 - Para la base de datos se usará PostgreSQL, por lo que se debe tener instalado en el sistema. 
   Si no se tiene instalado, se puede descargar desde su [página oficial](https://www.postgresql.org/download/).
+
+- Para el manejo del jwt, deberás crear una key RSA pública y privada desde aqui:
+  [Generador de llaves RSA](https://cryptotools.net/rsagen) 
+  y guardarlas en la carpeta "keys" con los nombres "private.pem" y "public.pem" respectivamente.
 
 ---
 
@@ -40,9 +44,12 @@ Todos los cambios serán documentados en este archivo.
     - Controlador del usuario (usercontroller), se usará para la creación de endpoints.
     - Servicio del usuario (userservice), se usará para crear las operaciones que se podran realizar a través del controlador.
     - Creación de usuario root al iniciar el servidor. 
+    - Encriptación y desencriptación de contraseñas.
   
   #### Caracteristicas:
-    - 
+    - Inicio y registro de cuentas.
+    - Manejo de expiración de sesión.
+    - Manejo de verificación de rol.
 
 ### Removido
 ### Cambiado
