@@ -1,55 +1,43 @@
+from app.repositories.genre_dao import GeneroDAO
+from app.repositories.preferences_dao import PreferenciasDAO
 from app.repositories.user_dao import UsuarioDAO
 from app.repositories.userrole_dao import UsuarioRolDAO
+from app.utils.db_utils import hash_password
+from app.utils.db_data import generos, roles, root_data
+# from app.utils.db_utils import db_operation
+from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import select
-# from app.utils.db_utils import db_operation
-import os, logging
-
-from app.utils.db_utils import hash_password
+import logging
 
 
 class UserService:
     def __init__(self):
         self.logger = logging.getLogger("uvicorn")
 
-    async def create_root_user(self, db: AsyncSession):
+    @staticmethod
+    async def initialize_db(db: AsyncSession):
         """
-            Crea un usuario Root en la base de datos si no existe.
-        """
-        # Preparar los datos de los roles:
-        roles = [
-            UsuarioRolDAO(nombre="root"),
-            UsuarioRolDAO(nombre="admin"),
-            UsuarioRolDAO(nombre="cliente")
-        ]
-        
-        # Preparar los datos del usuario Root
-        user_data = {
-            "DNI": "R000000",
-            "correo_electronico": os.getenv("ROOT_EMAIL"),
-            "usuario": os.getenv("ROOT_USER"),
-            "clave": hash_password( os.getenv("ROOT_PASSWORD") ),
-            "rol": 1
-        }
-    
+            Inicializar datos primordiales para el funcionamiento del software.
+        """    
         # Verificar si el usuario Root ya existe
-        stmt = select(UsuarioDAO).where(UsuarioDAO.DNI == user_data["DNI"])
+        stmt = select(UsuarioDAO).where(UsuarioDAO.DNI == root_data["DNI"])
         result = await db.execute(stmt)
         existing_user = result.scalars().first()
 
         if not existing_user:
             # Crear Roles
             db.add_all(roles)
+            
+            # Crear Generos
+            db.add_all(generos)
 
             # Crear Usuario
-            db_user = UsuarioDAO(**user_data)
+            db_user = UsuarioDAO(**root_data)
             db.add(db_user)
             await db.commit()
             await db.refresh(db_user)
-            self.logger.info("Se ha creado el usuario Root en la base de datos.")
-        else:
-            self.logger.info("El usuario Root ya existe en la base de datos.")
 
     async def get_user_dni_role(self, db: AsyncSession, email: str):
         """
@@ -78,24 +66,34 @@ class UserService:
         """
             Crea una nueva cuenta de usuario en la base de datos.
         """
+        preferences = []
+        birthDate_conversion = datetime.strptime(account_data["fecha_nacimiento"], "%Y-%m-%dT%H:%M:%S.%fZ").date()
+
         new_account = UsuarioDAO(
             DNI=account_data["DNI"],
             nombre=account_data["nombre"],
             apellido=account_data["apellido"],
-            fecha_nacimiento=account_data["fecha_nacimiento"],
-            lugar_nacimiento=account_data["lugar_nacimiento"],
+            fecha_nacimiento=birthDate_conversion,
+            pais=account_data["pais"],
+            estado=account_data["estado"],
+            ciudad=account_data["ciudad"],
             direccion_envio=account_data["direccion_envio"],
             genero=account_data["genero"],
             correo_electronico=account_data["correo_electronico"],
             usuario=account_data["usuario"],
             clave=hash_password( account_data["clave"] ), 
             suscrito_noticias=account_data.get("suscrito_noticias", False), #TODO - Revisar cuando se le preguntará al usuario la suscripción a noticias.
-            saldo=account_data.get("saldo", 0.0),
+            saldo=0.0,
             rol=3 # Cliente
         )
+        
+        # Preferencias del usuario
+        for preference in account_data["preferencias"]:
+            preferences.append( PreferenciasDAO(id_usuario=account_data["DNI"], id_genero=preference["id"]) )
 
         try:
             db.add(new_account)
+            db.add_all(preferences)
             await db.commit()
             await db.refresh(new_account)
             return True

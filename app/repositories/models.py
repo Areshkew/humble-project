@@ -15,6 +15,7 @@ from .ticket_dao import TicketDAO
 from .ticketmsg_dao import TicketMensajeDAO
 from .user_dao import UsuarioDAO
 from .userrole_dao import UsuarioRolDAO
+from .preferences_dao import PreferenciasDAO
 from sqlalchemy.orm import relationship
 
 # Creación de las relaciones entre las tablas

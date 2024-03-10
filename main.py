@@ -4,7 +4,8 @@ from contextlib import asynccontextmanager
 from app.controllers.user_controller import UserController
 from db.connection import engine
 from fastapi import FastAPI
-import uvicorn
+from fastapi.middleware.cors import CORSMiddleware
+import uvicorn, os
 
 class ServerBootstrap:
     """
@@ -13,10 +14,12 @@ class ServerBootstrap:
 
         Los controladores son clases que se encargan de manejar las peticiones HTTP.
     """
+    origin = [ os.getenv("CORS_ORIGIN") ]
+    
     def __init__(self, app: FastAPI):
         self.app = app
         self.user_controller = UserController()
-        self.app.include_router(self.user_controller.route) 
+        self.app.include_router(self.user_controller.route, prefix='/api') 
 
     def run(self):
         uvicorn.run(self.app, host="localhost", port=8000)
@@ -30,8 +33,7 @@ class ServerBootstrap:
         # Crear el usuario root
         async for session in get_db_session():
             try:
-                user_service = UserService()
-                await user_service.create_root_user(session)
+                await UserService.initialize_db(session)
             finally:
                 await session.close()
 
@@ -39,7 +41,11 @@ class ServerBootstrap:
     
 def main():
     app = FastAPI(lifespan=ServerBootstrap.start_up_events)
-
+    app.add_middleware(CORSMiddleware, 
+                        allow_origins=ServerBootstrap.origin,
+                        allow_credentials=True, 
+                        allow_methods=["*"],
+                        allow_headers=["*"])
     ServerBootstrap(app).run()
 
 if __name__ == "__main__":

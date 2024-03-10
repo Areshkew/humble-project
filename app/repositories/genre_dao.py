@@ -8,3 +8,4 @@ class GeneroDAO(Base):
     genero = Column(String(64), nullable=False)
 
     libros_genero = relationship("LibroGeneroDAO", back_populates="genero_ref")
+    preferencias_genero = relationship("PreferenciasDAO", back_populates="genero_ref")

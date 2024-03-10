@@ -21,3 +21,4 @@ class UsuarioDAO(Base):
     rol = Column(Integer, ForeignKey('usuarios_rol.id'))
 
     rol_ref = relationship("UsuarioRolDAO", back_populates="usuarios")
+    preferencias_usuario = relationship("PreferenciasDAO", back_populates="usuario_ref")
