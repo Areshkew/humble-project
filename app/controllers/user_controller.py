@@ -22,7 +22,7 @@ class UserController(Injectable):
                 "sub": user_db["DNI"],
                 "role": user_db["rol"]
             })
-            return {"detail": "Se inició sesión correctamente.", "token": token}
+            return {"detail": "Se inició sesión correctamente.", "role": user_db["rol"], "token": token}
         
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="El email o contraseña no son válidos.")
@@ -39,7 +39,7 @@ class UserController(Injectable):
                 "sub": data["DNI"],
                 "role": "cliente"
             })
-            return  {"detail": "Se registró la cuenta correctamente.", "token": token}
+            return  {"detail": "Se registró la cuenta correctamente.", "role": "cliente", "token": token}
 
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="El usuario ya existe.")

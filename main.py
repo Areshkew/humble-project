@@ -20,7 +20,7 @@ class ServerBootstrap:
     
     def __init__(self, app: FastAPI):
         self.app = app
-        self.app.include_router(self.usercontroller.route) 
+        self.app.include_router(self.usercontroller.route, prefix='/api') 
 
     def run(self):
         uvicorn.run(self.app, host="localhost", port=8000)

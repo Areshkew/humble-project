@@ -1,4 +1,3 @@
-from app.repositories.genre_dao import GeneroDAO
 from app.repositories.preferences_dao import PreferenciasDAO
 from app.repositories.user_dao import UsuarioDAO
 from app.repositories.userrole_dao import UsuarioRolDAO
@@ -9,9 +8,7 @@ from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import select
-import os, logging
-
-
+import logging
 
 class UserService(Injectable):
     def __init__(self):
