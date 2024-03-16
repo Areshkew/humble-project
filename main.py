@@ -1,4 +1,5 @@
 from app.services.user_service import UserService
+from app.utils.class_utils import inject
 from app.utils.db_utils import create_tables, get_db_session
 from contextlib import asynccontextmanager
 from app.controllers.user_controller import UserController
@@ -7,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn, os
 
+@inject(UserController)
 class ServerBootstrap:
     """
         ServerBootstrap es responsable de inicializar el servidor.
@@ -18,8 +20,7 @@ class ServerBootstrap:
     
     def __init__(self, app: FastAPI):
         self.app = app
-        self.user_controller = UserController()
-        self.app.include_router(self.user_controller.route, prefix='/api') 
+        self.app.include_router(self.usercontroller.route) 
 
     def run(self):
         uvicorn.run(self.app, host="localhost", port=8000)

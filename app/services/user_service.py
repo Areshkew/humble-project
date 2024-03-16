@@ -4,15 +4,16 @@ from app.repositories.user_dao import UsuarioDAO
 from app.repositories.userrole_dao import UsuarioRolDAO
 from app.utils.db_utils import hash_password
 from app.utils.db_data import generos, roles, root_data
-# from app.utils.db_utils import db_operation
+from app.utils.class_utils import Injectable
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import select
-import logging
+import os, logging
 
 
-class UserService:
+
+class UserService(Injectable):
     def __init__(self):
         self.logger = logging.getLogger("uvicorn")
 
