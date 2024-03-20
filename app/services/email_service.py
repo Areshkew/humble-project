@@ -25,6 +25,3 @@ class EmailService:
         with smtplib.SMTP_SSL(self.smtp_server, self.smtp_port_ssl) as server:
             server.login(self.email, self.password)
             server.sendmail(self.email, recipient, message.as_string())
-
-email_service = EmailService('libhub.contact@gmail.com', 'axxa exyx edeo xvnn')
-email_service.send_email('a.ramirez2@utp.edu.co', 'Prueba', 'Prueba')
