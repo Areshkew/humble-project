@@ -26,5 +26,5 @@ class EmailService:
             server.login(self.email, self.password)
             server.sendmail(self.email, recipient, message.as_string())
 
-email_service = EmailService('libhub.contact@gmail.com', 'axxa exyx edeo xvnn')
+email_service = EmailService('libhub.contact@gmail.com', 'email_password')
 email_service.send_email('a.ramirez2@utp.edu.co', 'Prueba', 'Prueba')
