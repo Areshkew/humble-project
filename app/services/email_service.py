@@ -1,8 +1,9 @@
+from app.utils.class_utils import Injectable
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import smtplib
 
-class EmailService:
+class EmailService(Injectable):
     def __init__(self, email, password):
         self.email = email
         self.password = password
