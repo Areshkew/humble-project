@@ -14,7 +14,7 @@ def create_token(payload: dict):
             "exp": expire
         })
     
-    token = jwt.encode(payload=payload, key=PRIVATE_KEY, algorithm=ALGORITHM)
+    token = jwt.encode(payload=data, key=PRIVATE_KEY, algorithm=ALGORITHM)
     return token
 
 def verify_token(token: str):
