@@ -1,3 +1,4 @@
+from app.middleware.auth_middleware import AuthMiddleware
 from app.services.user_service import UserService
 from app.utils.class_utils import inject
 from app.utils.db_utils import create_tables, get_db_session
@@ -47,6 +48,7 @@ def main():
                         allow_credentials=True, 
                         allow_methods=["*"],
                         allow_headers=["*"])
+    app.add_middleware(AuthMiddleware)
     ServerBootstrap(app).run()
 
 if __name__ == "__main__":
