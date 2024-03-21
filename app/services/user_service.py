@@ -1,6 +1,7 @@
 from app.repositories.preferences_dao import PreferenciasDAO
 from app.repositories.user_dao import UsuarioDAO
 from app.repositories.userrole_dao import UsuarioRolDAO
+from app.repositories.securitycodes_dao import CodigoSeguridadDAO
 from app.utils.db_utils import hash_password
 from app.utils.db_data import generos, roles, root_data
 from app.utils.class_utils import Injectable
@@ -9,6 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import select
 import logging
+import random
+import datetime
 
 class UserService(Injectable):
     def __init__(self):
@@ -94,6 +97,40 @@ class UserService(Injectable):
             db.add_all(preferences)
             await db.commit()
             await db.refresh(new_account)
+            return True
+        except IntegrityError:
+            await db.rollback()
+            return None
+        
+    async def generate_recovery_code(self) -> str:
+        """
+        Genera un código de recuperación de contraseña aleatorio de 8 caracteres alfanuméricos.
+
+        """
+        # Caracteres alfanuméricos que se utilizarán para generar el código
+        characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+        
+        # Genera el código de recuperación aleatorio
+        recovery_code = await ''.join(random.choice(characters) for i in range(8))
+        
+        return recovery_code
+    
+    async def store_code(self, db: AsyncSession, email: str, code: str):
+        """
+            Crea nueva instancia para darle a un correo su codigo
+        """
+
+        current_datetime = datetime.datetime.now() #Guardar fecha de cuando se agrega el codigo a la db
+
+        new_code = CodigoSeguridadDAO(
+            codigo=code,
+            correo_electronico=email,
+            fecha= current_datetime
+        )
+        try:
+            db.add(new_code)
+            await db.commit()
+            await db.refresh(new_code)
             return True
         except IntegrityError:
             await db.rollback()
