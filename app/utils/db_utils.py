@@ -26,7 +26,7 @@ async def create_tables(engine: AsyncEngine) -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-async def hash_password(password: str) -> str:
+def hash_password(password: str) -> str:
     """
     Función para encriptar una contraseña utilizando bcrypt.
     
@@ -35,11 +35,11 @@ async def hash_password(password: str) -> str:
     Retorna un str el cual seria el hast de la constraseña ya encriptada.
 
     """
-    salt = await bcrypt.gensalt()
-    hashed_password = await bcrypt.hashpw(password.encode('utf-8'), salt)
+    salt = bcrypt.gensalt()
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt)
     return hashed_password.decode('utf-8')
 
-async def verify_password(plain_password: str, hashed_password: str) -> bool:
+def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     Función para verificar si una contraseña coincide con su versión encriptada.
     
@@ -49,7 +49,7 @@ async def verify_password(plain_password: str, hashed_password: str) -> bool:
     Retorna un bool, True si la contraseña coincide y False en caso contrario
 
     """
-    result = await bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+    result = bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
     return result
 
 def db_operation(db_session_key: str = 'db'):

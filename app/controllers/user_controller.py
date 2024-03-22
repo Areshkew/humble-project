@@ -14,13 +14,16 @@ class UserController(Injectable):
         self.route = APIRouter(prefix='/user')
         self.route.add_api_route("/login", self.login, methods=["POST"])
         self.route.add_api_route("/signup", self.signup, methods=["POST"])
+        self.route.add_api_route("/passwordrecover", self.passwordrecover, methods=["POST"])
+        self.route.add_api_route("/codeverification", self.codeverification, methods=["POST"])
+        self.route.add_api_route("/newpassword", self.newpassword, methods=["POST"])
 
     async def login(self, user: UserLogin, db: Session = Depends(get_db_session)):
         data = user.model_dump()
         user_db = await self.userservice.get_user_dni_role(db, data["correo_electronico"])
-        password_verification = await verify_password(data["clave"], user_db["clave"])
+        password_verification = verify_password(data["clave"], user_db["clave"])
 
-        if user_db and await password_verification:
+        if user_db and password_verification:
             token = create_token({
                 "sub": user_db["DNI"],
                 "role": user_db["rol"]
@@ -54,14 +57,30 @@ class UserController(Injectable):
         if user_db:
             codigo = await self.userservice.generate_recovery_code()
             await self.userservice.store_code(db, data["correo_electronico"], codigo) 
-            self.emailservice.send_email(data["correo_electronico"], codigo)
-            return {"detail": "Se envio el correo con exito."}
+            self.emailservice.send_email(data["correo_electronico"], "Codigo de recuperacion-Libhub", codigo)
+            return {"detail": "Se envio el correo con exito.", "Success": "True"}
         
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="El email no existe o no es valido") 
     
     async def codeverification(self, user: UserCode, db: Session = Depends(get_db_session)):
-        pass
+        data = user.model_dump()
+        success = await self.userservice.verify_code(db, data["correo_electronico"], data["codigo"])
+
+        if success:
+            return {"detail": "El codigo es correcto", "Success": "True"}
+        
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="El codigo es invalido")
+            
 
     async def newpassword(self, user: UserNewPassword, db: Session = Depends(get_db_session)):
-        pass
+        data = user.model_dump()
+
+        success = await self.userservice.update_password(db, data["correo_electronico"], data["clave"], data["claveRepetida"])
+
+        if success:
+            return {"detail": "Contraseña cambiada con exito", "Success": "True"}
+        
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Las dos contraseñas no coinciden")

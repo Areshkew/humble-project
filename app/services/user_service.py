@@ -11,7 +11,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy import select
 import logging
 import random
-import datetime
 
 class UserService(Injectable):
     def __init__(self):
@@ -82,7 +81,7 @@ class UserService(Injectable):
             genero=account_data["genero"],
             correo_electronico=account_data["correo_electronico"],
             usuario=account_data["usuario"],
-            clave=hash_password( account_data["clave"] ), 
+            clave= hash_password(account_data["clave"] ), 
             suscrito_noticias=account_data.get("suscrito_noticias", False), #TODO - Revisar cuando se le preguntará al usuario la suscripción a noticias.
             saldo=0.0,
             rol=3 # Cliente
@@ -111,27 +110,78 @@ class UserService(Injectable):
         characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
         
         # Genera el código de recuperación aleatorio
-        recovery_code = await ''.join(random.choice(characters) for i in range(8))
+        recovery_code = ''.join(random.choice(characters) for i in range(8))
         
         return recovery_code
     
     async def store_code(self, db: AsyncSession, email: str, code: str):
         """
-            Crea nueva instancia para darle a un correo su codigo
+        Crea una nueva instancia o actualiza el código de seguridad para el correo electrónico dado.
         """
 
-        current_datetime = datetime.datetime.now() #Guardar fecha de cuando se agrega el codigo a la db
+        # Verificar si ya existe un registro para el correo electrónico dado
+        existing_code = await db.execute(select(CodigoSeguridadDAO).filter(CodigoSeguridadDAO.correo_electronico == email))
+        existing_code = existing_code.scalars().first()
 
-        new_code = CodigoSeguridadDAO(
-            codigo=code,
-            correo_electronico=email,
-            fecha= current_datetime
-        )
-        try:
-            db.add(new_code)
+        if existing_code: #Si existe actualizar
+            existing_code.codigo = code
+            existing_code.fecha = datetime.now()
             await db.commit()
-            await db.refresh(new_code)
+        else: #Si no existe crear uno nuevo
+            new_code = CodigoSeguridadDAO(
+                codigo=code,
+                correo_electronico=email,
+                fecha=datetime.now()
+            )
+            try:
+                db.add(new_code)
+                await db.commit()
+                return True
+            except IntegrityError:
+                await db.rollback()
+                return False
+    
+    async def verify_code(self, db: AsyncSession, email: str, code: str) -> bool:
+        """
+        Compara si el correo tiene el codigo introducido asignado a el
+
+        """
+        stmt = select(CodigoSeguridadDAO).where( #Busqueda de correo y codigo especificados
+            (CodigoSeguridadDAO.correo_electronico == email) &
+            (CodigoSeguridadDAO.codigo == code)
+        )
+        result = await db.execute(stmt)
+        codigo_seguridad = result.scalars().first()
+        
+        if codigo_seguridad is None:
+            return False
+
+        current_datetime = datetime.now()
+        time_difference = current_datetime - codigo_seguridad.fecha
+
+        if time_difference.total_seconds() < 300:  # 5 minutos en segundos
             return True
-        except IntegrityError:
-            await db.rollback()
-            return None
+        else:
+            return False
+
+    
+    async def update_password(self, db: AsyncSession, gmail: str, password: str, passwordRepeated: str) -> bool:
+        """
+        Actualiza la contraseña de algun email de un usuario
+
+        """
+        if password != passwordRepeated:
+            return False
+
+        hashed_password = hash_password(password)
+
+        # Buscar al usuario por su correo electrónico en la base de datos
+        user = await db.execute(select(UsuarioDAO).filter(UsuarioDAO.correo_electronico == gmail))
+        user = user.scalars().first()
+        if not user:
+            return False
+
+        # Actualizar la contraseña del usuario en la base de datos
+        user.clave = hashed_password
+        await db.commit()
+        return True

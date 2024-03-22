@@ -8,7 +8,7 @@ import os
 class EmailService(Injectable):
     def __init__(self):
         self.email = os.getenv("SMTP_EMAIL")
-        self.password = os.getenv("SMPT_PASSWORD")
+        self.password = os.getenv("SMTP_PASSWORD")
         self.smtp_server = 'smtp.gmail.com'
         self.smtp_port_ssl = 465
 

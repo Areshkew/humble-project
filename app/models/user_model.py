@@ -31,5 +31,6 @@ class UserCode(BaseModel):
     codigo: Annotated[str, Field(..., length=8)]
 
 class UserNewPassword(BaseModel):
+    correo_electronico: Annotated[EmailStr, Field(...)]
     clave: Annotated[str, Field(..., min_length=5, max_length=32)]
-    claveRepeated: Annotated[str, Field(..., min_length=5, max_length=32)]
+    claveRepetida: Annotated[str, Field(..., min_length=5, max_length=32)]
