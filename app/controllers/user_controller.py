@@ -7,8 +7,7 @@ from app.utils.auth import create_token
 from app.utils.class_utils import Injectable, inject
 from app.utils.db_utils import get_db_session, verify_password
 
-@inject(UserService)
-@inject(EmailService)
+@inject(UserService, EmailService)
 class UserController(Injectable):
     def __init__(self):
         self.route = APIRouter(prefix='/user')
