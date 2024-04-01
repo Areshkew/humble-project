@@ -22,3 +22,15 @@ class User(BaseModel):
 class UserLogin(BaseModel):
     correo_electronico: Annotated[EmailStr, Field(...)]
     clave: Annotated[str, Field(..., min_length=5, max_length=32)]
+
+class UserRecovery(BaseModel):
+    correo_electronico: Annotated[EmailStr, Field(...)]
+
+class UserCode(BaseModel):
+    correo_electronico: Annotated[EmailStr, Field(...)]
+    codigo: Annotated[str, Field(..., length=8)]
+
+class UserNewPassword(BaseModel):
+    correo_electronico: Annotated[EmailStr, Field(...)]
+    clave: Annotated[str, Field(..., min_length=5, max_length=32)]
+    claveRepetida: Annotated[str, Field(..., min_length=5, max_length=32)]

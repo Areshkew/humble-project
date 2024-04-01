@@ -22,3 +22,4 @@ class UsuarioDAO(Base):
 
     rol_ref = relationship("UsuarioRolDAO", back_populates="usuarios")
     preferencias_usuario = relationship("PreferenciasDAO", back_populates="usuario_ref")
+    codigos_ref = relationship("CodigoSeguridadDAO", back_populates="correo_ref")

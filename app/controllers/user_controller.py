@@ -1,23 +1,28 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.orm import Session
-from app.models.user_model import User, UserLogin
+from app.models.user_model import *
 from app.services.user_service import UserService
+from app.services.email_service import EmailService
 from app.utils.auth import create_token
 from app.utils.class_utils import Injectable, inject
 from app.utils.db_utils import get_db_session, verify_password
 
-@inject(UserService)
+@inject(UserService, EmailService)
 class UserController(Injectable):
     def __init__(self):
         self.route = APIRouter(prefix='/user')
         self.route.add_api_route("/login", self.login, methods=["POST"])
         self.route.add_api_route("/signup", self.signup, methods=["POST"])
+        self.route.add_api_route("/passwordrecover", self.passwordrecover, methods=["POST"])
+        self.route.add_api_route("/codeverification", self.codeverification, methods=["POST"])
+        self.route.add_api_route("/newpassword", self.newpassword, methods=["POST"])
 
     async def login(self, user: UserLogin, db: Session = Depends(get_db_session)):
         data = user.model_dump()
         user_db = await self.userservice.get_user_dni_role(db, data["correo_electronico"])
+        password_verification = verify_password(data["clave"], user_db["clave"])
 
-        if user_db and verify_password(data["clave"], user_db["clave"]):
+        if user_db and password_verification:
             token = create_token({
                 "sub": user_db["DNI"],
                 "role": user_db["rol"]
@@ -43,3 +48,38 @@ class UserController(Injectable):
 
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="El usuario ya existe.")
+
+    async def passwordrecover(self, user: UserRecovery, db: Session = Depends(get_db_session)):
+        data = user.model_dump()
+        user_db = await self.userservice.account_exists(db, None, data["correo_electronico"], None)
+
+        if user_db:
+            codigo = await self.userservice.generate_recovery_code()
+            await self.userservice.store_code(db, data["correo_electronico"], codigo) 
+            self.emailservice.send_email(data["correo_electronico"], "Codigo de recuperacion-Libhub", codigo)
+            return {"detail": "Se envio el correo con exito.", "Success": "True"}
+        
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="El email no existe o no es valido") 
+    
+    async def codeverification(self, user: UserCode, db: Session = Depends(get_db_session)):
+        data = user.model_dump()
+        success = await self.userservice.verify_code(db, data["correo_electronico"], data["codigo"])
+
+        if success:
+            return {"detail": "El codigo es correcto", "Success": "True"}
+        
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="El codigo es invalido")
+            
+
+    async def newpassword(self, user: UserNewPassword, db: Session = Depends(get_db_session)):
+        data = user.model_dump()
+
+        success = await self.userservice.update_password(db, data["correo_electronico"], data["clave"], data["claveRepetida"])
+
+        if success:
+            return {"detail": "Contraseña cambiada con exito", "Success": "True"}
+        
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Las dos contraseñas no coinciden")

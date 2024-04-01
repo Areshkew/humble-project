@@ -2,11 +2,13 @@ from app.utils.class_utils import Injectable
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import smtplib
+import os
+
 
 class EmailService(Injectable):
-    def __init__(self, email, password):
-        self.email = email
-        self.password = password
+    def __init__(self):
+        self.email = os.getenv("SMTP_EMAIL")
+        self.password = os.getenv("SMTP_PASSWORD")
         self.smtp_server = 'smtp.gmail.com'
         self.smtp_port_ssl = 465
 
