@@ -5,12 +5,14 @@ from app.repositories.securitycodes_dao import CodigoSeguridadDAO
 from app.utils.db_utils import hash_password
 from app.utils.db_data import generos, roles, root_data
 from app.utils.class_utils import Injectable
+from typing import List
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import select, delete
 import logging
 import random
+
 
 class UserService(Injectable):
     def __init__(self):
@@ -40,24 +42,32 @@ class UserService(Injectable):
             await db.refresh(db_user)
 
 
-    async def get_user_by_dni(self, db: AsyncSession, dni: str) -> UsuarioDAO:
+    async def get_user_data(self, db: AsyncSession, dni: str, user_fields: List[str]):
         """
-        Busca un usuario por su número de identificación (DNI) en la base de datos.
+        Obtiene los datos del usuario según el DNI y los campos especificados.
         """
-        stmt = select(UsuarioDAO).where(UsuarioDAO.DNI == dni)
-        result = await db.execute(stmt)
-        user = result.scalars().first()
-        return user
+        # Lista de campos a excluir 
+        exclude_fields = ["clave", "preferencias"]
 
+        selected_columns = [getattr(UsuarioDAO, field) for field in user_fields if field not in exclude_fields]
 
-    async def get_preferences_by_dni(self, db: AsyncSession, dni: str) -> list[PreferenciasDAO]:
-        """
-         Busca las preferencias de un usuario por su número de identificación (DNI) en la base de datos.
-        """
-        stmt = select(PreferenciasDAO).join(PreferenciasDAO.usuario_ref).filter(UsuarioDAO.DNI == dni)
-        result = await db.execute(stmt)
-        preferences = [pref.id_genero for pref in result.scalars().all()]
-        return preferences
+        # Realizar la consulta en la base de datos
+        user_query = select(*selected_columns).filter(UsuarioDAO.DNI == dni)
+        user_results = await db.execute(user_query)
+        user_row = user_results.fetchone()
+
+        # Crear un diccionario con los resultados
+        user_data = dict(zip(user_fields, user_row))
+
+        # Obtener las preferencias del usuario si se solicitan
+        if "preferencias" in user_fields:
+            preferences_query = select(PreferenciasDAO.id_genero).join(UsuarioDAO).filter(UsuarioDAO.DNI == dni)
+            preferences_results = await db.execute(preferences_query)
+            preferences = preferences_results.fetchall()
+            user_data["preferencias"] = [pref[0] for pref in preferences]
+            
+        return user_data
+
 
 
     async def get_user_dni_role(self, db: AsyncSession, email: str):
@@ -129,7 +139,6 @@ class UserService(Injectable):
         """
             Actualiza una cuenta de usuario en la base de datos.
         """
-
         
         result = await db.execute(select(UsuarioDAO).filter(UsuarioDAO.DNI == dni))
         user = result.scalar()

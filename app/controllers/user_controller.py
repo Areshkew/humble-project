@@ -96,14 +96,13 @@ class UserController(Injectable):
     async def getuserdata(self, user_fields: List[str], request: Request, db: Session = Depends(get_db_session)):
         data = request.state.payload["sub"]
 
-        user = await self.userservice.get_user_by_dni(db, data)
+        if "role" not in request.state.payload:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Rol de usuario no encontrado")
+    
+        if request.state.payload["role"] == "guest":
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized: Rol visitante")
 
-        user_data = {field: getattr(user, field) for field in user_fields if field != "preferencias"}
-        user_data.pop("clave", None)
-
-        if "preferencias" in user_fields:
-            preferences = await self.userservice.get_preferences_by_dni(db, data)
-            user_data["preferencias"] = preferences
+        user_data = await self.userservice.get_user_data(db, data, user_fields)
 
         return user_data
 
@@ -111,6 +110,12 @@ class UserController(Injectable):
     async def editaccount(self, user: UserUpdate, request: Request, db: Session = Depends(get_db_session)):
         data = user.model_dump()
         dni = request.state.payload["sub"]
+
+        if request.state.payload["role"] == "root":
+            raise HTTPException(status_code=403, detail="El usuario root no puede editar cuenta")
+        
+        if request.state.payload["role"] not in ["admin", "cliente"]:
+            raise HTTPException(status_code=403, detail="No tienes permiso para editar esta cuenta")
 
         data = {key: value for key, value in data.items() if value is not None} #Filtrar datos que no sean default
         
