@@ -5,7 +5,7 @@ from sqlalchemy.orm import relationship
 class PreferenciasDAO(Base):
     __tablename__ = 'preferencias'
     id = Column(Integer, primary_key=True, unique=True, nullable=False)
-    id_usuario = Column(String(10), ForeignKey('usuarios.DNI'))
+    id_usuario = Column(String(10), ForeignKey('usuarios.DNI', onupdate='CASCADE'))
     id_genero = Column(Integer, ForeignKey('generos.id'))
     
     usuario_ref = relationship("UsuarioDAO", back_populates="preferencias_usuario")

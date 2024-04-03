@@ -5,12 +5,14 @@ from app.repositories.securitycodes_dao import CodigoSeguridadDAO
 from app.utils.db_utils import hash_password
 from app.utils.db_data import generos, roles, root_data
 from app.utils.class_utils import Injectable
+from typing import List
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import select
+from sqlalchemy import select, delete
 import logging
 import random
+
 
 class UserService(Injectable):
     def __init__(self):
@@ -39,6 +41,35 @@ class UserService(Injectable):
             await db.commit()
             await db.refresh(db_user)
 
+
+    async def get_user_data(self, db: AsyncSession, dni: str, user_fields: List[str]):
+        """
+        Obtiene los datos del usuario según el DNI y los campos especificados.
+        """
+        # Lista de campos a excluir 
+        exclude_fields = ["clave", "preferencias"]
+
+        selected_columns = [getattr(UsuarioDAO, field) for field in user_fields if field not in exclude_fields]
+
+        # Realizar la consulta en la base de datos
+        user_query = select(*selected_columns).filter(UsuarioDAO.DNI == dni)
+        user_results = await db.execute(user_query)
+        user_row = user_results.fetchone()
+
+        # Crear un diccionario con los resultados
+        user_data = dict(zip(user_fields, user_row))
+
+        # Obtener las preferencias del usuario si se solicitan
+        if "preferencias" in user_fields:
+            preferences_query = select(PreferenciasDAO.id_genero).join(UsuarioDAO).filter(UsuarioDAO.DNI == dni)
+            preferences_results = await db.execute(preferences_query)
+            preferences = preferences_results.fetchall()
+            user_data["preferencias"] = [pref[0] for pref in preferences]
+            
+        return user_data
+
+
+
     async def get_user_dni_role(self, db: AsyncSession, email: str):
         """
             Obtener el usuario a través de su email.
@@ -48,6 +79,7 @@ class UserService(Injectable):
         user = result.fetchone()
         
         return {"DNI": user[0], "rol": user[1], "clave": user[2]} if user else None
+
 
     async def account_exists(self, db: AsyncSession, username: str, email: str, dni: str) -> bool:
         """
@@ -62,6 +94,7 @@ class UserService(Injectable):
         account = result.scalars().first()
         return account is not None
     
+
     async def create_account(self, db: AsyncSession, account_data: dict):
         """
             Crea una nueva cuenta de usuario en la base de datos.
@@ -101,6 +134,38 @@ class UserService(Injectable):
             await db.rollback()
             return None
         
+
+    async def update_account(self, db: AsyncSession, account_data: dict, dni: str):
+        """
+            Actualiza una cuenta de usuario en la base de datos.
+        """
+        
+        result = await db.execute(select(UsuarioDAO).filter(UsuarioDAO.DNI == dni))
+        user = result.scalar()
+
+        if "fecha_nacimiento" in account_data:
+            account_data["fecha_nacimiento"] = datetime.strptime(account_data["fecha_nacimiento"], "%Y-%m-%dT%H:%M:%S.%fZ").date()
+
+        if "clave" in account_data:
+            account_data["clave"] = hash_password(account_data["clave"])
+        
+        if "preferencias" in account_data:
+            await db.execute(delete(PreferenciasDAO).where(PreferenciasDAO.id_usuario == dni))
+            for preference in account_data["preferencias"]:
+                new_preference = PreferenciasDAO(id_usuario=user.DNI, id_genero=preference["id"])
+                db.add(new_preference) 
+          
+        try:    
+            for key, value in account_data.items():
+                if hasattr(user, key):
+                    setattr(user, key, value)
+            await db.commit()
+            return True
+        except IntegrityError:
+            await db.rollback()
+            return None
+        
+
     async def generate_recovery_code(self) -> str:
         """
         Genera un código de recuperación de contraseña aleatorio de 8 caracteres alfanuméricos.
@@ -114,6 +179,7 @@ class UserService(Injectable):
         
         return recovery_code
     
+
     async def store_code(self, db: AsyncSession, email: str, code: str):
         """
         Crea una nueva instancia o actualiza el código de seguridad para el correo electrónico dado.
@@ -141,6 +207,7 @@ class UserService(Injectable):
                 await db.rollback()
                 return False
     
+
     async def verify_code(self, db: AsyncSession, email: str, code: str) -> bool:
         """
         Compara si el correo tiene el codigo introducido asignado a el

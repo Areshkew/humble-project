@@ -10,7 +10,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 scheme, token = authorization_header.split(" ")
                 if scheme.lower() == "bearer":
                     payload = verify_token(token)
-                    request.state.role = payload.get("role", "guest")
+                    request.state.payload = payload
                 else:
                     request.state.role = "guest"
             except (ValueError, HTTPException):

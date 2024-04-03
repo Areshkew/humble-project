@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Request
 from sqlalchemy.orm import Session
 from app.models.user_model import *
 from app.services.user_service import UserService
@@ -16,22 +16,28 @@ class UserController(Injectable):
         self.route.add_api_route("/passwordrecover", self.passwordrecover, methods=["POST"])
         self.route.add_api_route("/codeverification", self.codeverification, methods=["POST"])
         self.route.add_api_route("/newpassword", self.newpassword, methods=["POST"])
+        self.route.add_api_route("/getuserdata", self.getuserdata, methods=["GET"])
+        self.route.add_api_route("/editaccount", self.editaccount, methods=["POST"])
+
 
     async def login(self, user: UserLogin, db: Session = Depends(get_db_session)):
         data = user.model_dump()
-        user_db = await self.userservice.get_user_dni_role(db, data["correo_electronico"])
-        password_verification = verify_password(data["clave"], user_db["clave"])
 
-        if user_db and password_verification:
-            token = create_token({
-                "sub": user_db["DNI"],
-                "role": user_db["rol"]
-            })
-            return {"detail": "Se inició sesión correctamente.", "role": user_db["rol"], "token": token}
+        user_db = await self.userservice.get_user_dni_role(db, data["correo_electronico"])
+
+        if user_db:
+            password_verification = verify_password(data["clave"], user_db["clave"])
+            if password_verification:
+                token = create_token({
+                    "sub": user_db["DNI"],
+                    "role": user_db["rol"]
+                })
+                return {"detail": "Se inició sesión correctamente.", "role": user_db["rol"], "token": token}
         
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="El email o contraseña no son válidos.")
-            
+
+
     async def signup(self, user: User, db: Session = Depends(get_db_session)):
         data = user.model_dump()
 
@@ -49,6 +55,7 @@ class UserController(Injectable):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="El usuario ya existe.")
 
+
     async def passwordrecover(self, user: UserRecovery, db: Session = Depends(get_db_session)):
         data = user.model_dump()
         user_db = await self.userservice.account_exists(db, None, data["correo_electronico"], None)
@@ -62,6 +69,7 @@ class UserController(Injectable):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="El email no existe o no es valido") 
     
+
     async def codeverification(self, user: UserCode, db: Session = Depends(get_db_session)):
         data = user.model_dump()
         success = await self.userservice.verify_code(db, data["correo_electronico"], data["codigo"])
@@ -83,3 +91,51 @@ class UserController(Injectable):
         
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Las dos contraseñas no coinciden")
+    
+
+    async def getuserdata(self, user_fields: List[str], request: Request, db: Session = Depends(get_db_session)):
+        data = request.state.payload["sub"]
+
+        if "role" not in request.state.payload:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Rol de usuario no encontrado")
+    
+        if request.state.payload["role"] == "guest":
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized: Rol visitante")
+
+        user_data = await self.userservice.get_user_data(db, data, user_fields)
+
+        return user_data
+
+
+    async def editaccount(self, user: UserUpdate, request: Request, db: Session = Depends(get_db_session)):
+        data = user.model_dump()
+        dni = request.state.payload["sub"]
+
+        if request.state.payload["role"] == "root":
+            raise HTTPException(status_code=403, detail="El usuario root no puede editar cuenta")
+        
+        if request.state.payload["role"] not in ["admin", "cliente"]:
+            raise HTTPException(status_code=403, detail="No tienes permiso para editar esta cuenta")
+
+        data = {key: value for key, value in data.items() if value is not None} #Filtrar datos que no sean default
+        
+        user_db = await self.userservice.account_exists(db, data.get("usuario"), data.get("correo_electronico"), data.get("DNI"))
+
+
+        if not user_db:
+            await self.userservice.update_account(db, data, dni)
+            if data.get("DNI") is not None:
+                token = create_token({
+                    "sub": data["DNI"],
+                    "role": "cliente"
+                    })
+            else:
+                token = create_token({
+                    "sub": dni,
+                    "role": "cliente"
+                    })
+            return  {"detail": "Se actualizo la cuenta correctamente.", "role": "cliente", "token": token}
+
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Datos ya existentes")
+                            
