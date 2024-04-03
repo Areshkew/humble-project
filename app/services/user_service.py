@@ -8,7 +8,7 @@ from app.utils.class_utils import Injectable
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import select
+from sqlalchemy import select, delete
 import logging
 import random
 
@@ -39,6 +39,27 @@ class UserService(Injectable):
             await db.commit()
             await db.refresh(db_user)
 
+
+    async def get_user_by_dni(self, db: AsyncSession, dni: str) -> UsuarioDAO:
+        """
+        Busca un usuario por su número de identificación (DNI) en la base de datos.
+        """
+        stmt = select(UsuarioDAO).where(UsuarioDAO.DNI == dni)
+        result = await db.execute(stmt)
+        user = result.scalars().first()
+        return user
+
+
+    async def get_preferences_by_dni(self, db: AsyncSession, dni: str) -> list[PreferenciasDAO]:
+        """
+         Busca las preferencias de un usuario por su número de identificación (DNI) en la base de datos.
+        """
+        stmt = select(PreferenciasDAO).join(PreferenciasDAO.usuario_ref).filter(UsuarioDAO.DNI == dni)
+        result = await db.execute(stmt)
+        preferences = [pref.id_genero for pref in result.scalars().all()]
+        return preferences
+
+
     async def get_user_dni_role(self, db: AsyncSession, email: str):
         """
             Obtener el usuario a través de su email.
@@ -48,6 +69,7 @@ class UserService(Injectable):
         user = result.fetchone()
         
         return {"DNI": user[0], "rol": user[1], "clave": user[2]} if user else None
+
 
     async def account_exists(self, db: AsyncSession, username: str, email: str, dni: str) -> bool:
         """
@@ -62,6 +84,7 @@ class UserService(Injectable):
         account = result.scalars().first()
         return account is not None
     
+
     async def create_account(self, db: AsyncSession, account_data: dict):
         """
             Crea una nueva cuenta de usuario en la base de datos.
@@ -101,6 +124,39 @@ class UserService(Injectable):
             await db.rollback()
             return None
         
+
+    async def update_account(self, db: AsyncSession, account_data: dict, dni: str):
+        """
+            Actualiza una cuenta de usuario en la base de datos.
+        """
+
+        
+        result = await db.execute(select(UsuarioDAO).filter(UsuarioDAO.DNI == dni))
+        user = result.scalar()
+
+        if "fecha_nacimiento" in account_data:
+            account_data["fecha_nacimiento"] = datetime.strptime(account_data["fecha_nacimiento"], "%Y-%m-%dT%H:%M:%S.%fZ").date()
+
+        if "clave" in account_data:
+            account_data["clave"] = hash_password(account_data["clave"])
+        
+        if "preferencias" in account_data:
+            await db.execute(delete(PreferenciasDAO).where(PreferenciasDAO.id_usuario == dni))
+            for preference in account_data["preferencias"]:
+                new_preference = PreferenciasDAO(id_usuario=user.DNI, id_genero=preference["id"])
+                db.add(new_preference) 
+          
+        try:    
+            for key, value in account_data.items():
+                if hasattr(user, key):
+                    setattr(user, key, value)
+            await db.commit()
+            return True
+        except IntegrityError:
+            await db.rollback()
+            return None
+        
+
     async def generate_recovery_code(self) -> str:
         """
         Genera un código de recuperación de contraseña aleatorio de 8 caracteres alfanuméricos.
@@ -114,6 +170,7 @@ class UserService(Injectable):
         
         return recovery_code
     
+
     async def store_code(self, db: AsyncSession, email: str, code: str):
         """
         Crea una nueva instancia o actualiza el código de seguridad para el correo electrónico dado.
@@ -141,6 +198,7 @@ class UserService(Injectable):
                 await db.rollback()
                 return False
     
+
     async def verify_code(self, db: AsyncSession, email: str, code: str) -> bool:
         """
         Compara si el correo tiene el codigo introducido asignado a el
