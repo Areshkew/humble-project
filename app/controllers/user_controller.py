@@ -16,7 +16,7 @@ class UserController(Injectable):
         self.route.add_api_route("/passwordrecover", self.passwordrecover, methods=["POST"])
         self.route.add_api_route("/codeverification", self.codeverification, methods=["POST"])
         self.route.add_api_route("/newpassword", self.newpassword, methods=["POST"])
-        self.route.add_api_route("/getuserdata", self.getuserdata, methods=["GET"])
+        self.route.add_api_route("/getuserdata", self.getuserdata, methods=["POST"])
         self.route.add_api_route("/editaccount", self.editaccount, methods=["POST"])
 
 
