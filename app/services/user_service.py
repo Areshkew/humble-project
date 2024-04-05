@@ -67,7 +67,17 @@ class UserService(Injectable):
             user_data["preferencias"] = [pref[0] for pref in preferences]
             
         return user_data
+    
 
+    async def get_user_pass(self, db: AsyncSession, dni: str):
+        """
+            Obtener la pass del usuario
+        """
+        stmt = select(UsuarioDAO.clave).where(UsuarioDAO.DNI == dni)
+        result = await db.execute(stmt)
+        user = result.fetchone()
+        
+        return user[0]
 
 
     async def get_user_dni_role(self, db: AsyncSession, email: str): #Borrar

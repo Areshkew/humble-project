@@ -124,19 +124,30 @@ class UserController(Injectable):
 
 
         if not user_db:
-            await self.userservice.update_account(db, data, dni)
-            if data.get("DNI") is not None:
-                token = create_token({
-                    "sub": data["DNI"],
-                    "role": "cliente"
-                    })
+            if any(field == "clave" for field in data.keys()):
+                if any(field == "clave_actual" for field in data.keys()):
+                    old_pass = await self.userservice.get_user_pass(db, dni)
+                    if verify_password(data["clave_actual"], old_pass):
+                        await self.userservice.update_account(db, data, dni)
+                    else:
+                        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                detail="Contraseña ingresada incorrecta")
+                else:
+                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                detail="Contraseña ingresada vacia")  
             else:
-                token = create_token({
-                    "sub": dni,
-                    "role": "cliente"
-                    })
+                await self.userservice.update_account(db, data, dni)
+            if data.get("DNI") is not None:
+                    token = create_token({
+                        "sub": data["DNI"],
+                        "role": "cliente"
+                        })
+            else:
+                    token = create_token({
+                        "sub": dni,
+                        "role": "cliente"
+                        })
             return  {"detail": "Se actualizo la cuenta correctamente.", "role": "cliente", "token": token}
-
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Datos ya existentes")
                             

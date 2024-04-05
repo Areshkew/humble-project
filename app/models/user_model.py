@@ -48,5 +48,6 @@ class UserUpdate(BaseModel):
     correo_electronico: Optional[EmailStr] = Field(default=None)
     usuario: Optional[str] = Field(default=None, min_length=1, max_length=32)
     clave: Optional[str] = Field(default=None, min_length=5, max_length=32)
+    clave_actual: Optional[str] = Field(default=None, min_length=5, max_length=32)
     suscrito_noticias: Optional[bool] = Field(default=None)
     preferencias: Optional[List[Genre]] = Field(default=None, min_items=1, max_items=3)
