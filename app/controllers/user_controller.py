@@ -107,7 +107,7 @@ class UserController(Injectable):
         return user_data
 
 
-    async def editaccount(self, user: UserUpdate, request: Request, db: Session = Depends(get_db_session)):
+    async def editaccount(self, user: UserUpdate, request: Request, password: str, db: Session = Depends(get_db_session)):
         data = user.model_dump()
         dni = request.state.payload["sub"]
 
@@ -124,18 +124,22 @@ class UserController(Injectable):
 
 
         if not user_db:
-            await self.userservice.update_account(db, data, dni)
-            if data.get("DNI") is not None:
-                token = create_token({
-                    "sub": data["DNI"],
-                    "role": "cliente"
-                    })
-            else:
-                token = create_token({
-                    "sub": dni,
-                    "role": "cliente"
-                    })
-            return  {"detail": "Se actualizo la cuenta correctamente.", "role": "cliente", "token": token}
+            old_pass = await self.userservice.get_user_pass(db, dni)
+            if verify_password(password, old_pass):
+                await self.userservice.update_account(db, data, dni)
+                if data.get("DNI") is not None:
+                    token = create_token({
+                        "sub": data["DNI"],
+                        "role": "cliente"
+                        })
+                else:
+                    token = create_token({
+                        "sub": dni,
+                        "role": "cliente"
+                        })
+                return  {"detail": "Se actualizo la cuenta correctamente.", "role": "cliente", "token": token}
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Contraseña ingresada incorrecta")
 
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Datos ya existentes")
