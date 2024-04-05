@@ -70,7 +70,7 @@ class UserService(Injectable):
 
 
 
-    async def get_user_dni_role(self, db: AsyncSession, email: str):
+    async def get_user_dni_role(self, db: AsyncSession, email: str): #Borrar
         """
             Obtener el usuario a través de su email.
         """

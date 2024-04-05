@@ -16,7 +16,7 @@ class UserController(Injectable):
         self.route.add_api_route("/passwordrecover", self.passwordrecover, methods=["POST"])
         self.route.add_api_route("/codeverification", self.codeverification, methods=["POST"])
         self.route.add_api_route("/newpassword", self.newpassword, methods=["POST"])
-        self.route.add_api_route("/getuserdata", self.getuserdata, methods=["GET"])
+        self.route.add_api_route("/getuserdata", self.getuserdata, methods=["POST"])
         self.route.add_api_route("/editaccount", self.editaccount, methods=["POST"])
 
 
@@ -111,13 +111,14 @@ class UserController(Injectable):
         data = user.model_dump()
         dni = request.state.payload["sub"]
 
-        if request.state.payload["role"] == "root":
-            raise HTTPException(status_code=403, detail="El usuario root no puede editar cuenta")
-        
-        if request.state.payload["role"] not in ["admin", "cliente"]:
-            raise HTTPException(status_code=403, detail="No tienes permiso para editar esta cuenta")
-
         data = {key: value for key, value in data.items() if value is not None} #Filtrar datos que no sean default
+
+
+        if request.state.payload["role"] == "root" and any(field != "clave" for field in data.keys()):
+            raise HTTPException(status_code=403, detail="El root solo puede editar su contraseña")
+        
+        if request.state.payload["role"] not in ["admin", "cliente","root"]:
+            raise HTTPException(status_code=403, detail="No tienes permiso para editar esta cuenta")
         
         user_db = await self.userservice.account_exists(db, data.get("usuario"), data.get("correo_electronico"), data.get("DNI"))
 
