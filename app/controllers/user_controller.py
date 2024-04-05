@@ -43,7 +43,7 @@ class UserController(Injectable):
 
         user_db = await self.userservice.account_exists(db, data["usuario"], data["correo_electronico"], data["DNI"])
 
-        if not user_db:
+        if not user_db["exists"]:
             await self.userservice.create_account(db, data)
             
             token = create_token({
@@ -53,21 +53,21 @@ class UserController(Injectable):
             return  {"detail": "Se registró la cuenta correctamente.", "role": "cliente", "token": token}
 
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="El usuario ya existe.")
+                            detail=f"Ya existe una cuenta con {' '.join(user_db['fields'].keys() )}, verifica los campos seleccionados.")
 
 
     async def passwordrecover(self, user: UserRecovery, db: Session = Depends(get_db_session)):
         data = user.model_dump()
         user_db = await self.userservice.account_exists(db, None, data["correo_electronico"], None)
 
-        if user_db:
+        if user_db["exists"]:
             codigo = await self.userservice.generate_recovery_code()
             await self.userservice.store_code(db, data["correo_electronico"], codigo) 
             self.emailservice.send_email(data["correo_electronico"], "Codigo de recuperacion-Libhub", codigo)
             return {"detail": "Se envio el correo con exito.", "Success": "True"}
         
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="El email no existe o no es valido") 
+                            detail="El correo electrónico no se encuentra en el sistema.") 
     
 
     async def codeverification(self, user: UserCode, db: Session = Depends(get_db_session)):
@@ -75,7 +75,7 @@ class UserController(Injectable):
         success = await self.userservice.verify_code(db, data["correo_electronico"], data["codigo"])
 
         if success:
-            return {"detail": "El codigo es correcto", "Success": "True"}
+            return {"detail": "El codigo ingresado se valido con el servidor.", "Success": True}
         
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="El codigo es invalido")
@@ -87,20 +87,20 @@ class UserController(Injectable):
         success = await self.userservice.update_password(db, data["correo_electronico"], data["clave"], data["claveRepetida"])
 
         if success:
-            return {"detail": "Contraseña cambiada con exito", "Success": "True"}
+            return {"detail": "La contraseña se cambio con exito.", "Success": True}
         
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="Las dos contraseñas no coinciden")
+                            detail="Las contraseñas ingresadas no coinciden.")
     
 
     async def getuserdata(self, user_fields: List[str], request: Request, db: Session = Depends(get_db_session)):
         data = request.state.payload["sub"]
 
         if "role" not in request.state.payload:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Rol de usuario no encontrado")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No se pudo acceder a la petición.")
     
         if request.state.payload["role"] == "guest":
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized: Rol visitante")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No se pudo acceder a la petición.")
 
         user_data = await self.userservice.get_user_data(db, data, user_fields)
 
@@ -110,44 +110,24 @@ class UserController(Injectable):
     async def editaccount(self, user: UserUpdate, request: Request, db: Session = Depends(get_db_session)):
         data = user.model_dump()
         dni = request.state.payload["sub"]
-
+        
         data = {key: value for key, value in data.items() if value is not None} #Filtrar datos que no sean default
-
-
+        
         if request.state.payload["role"] == "root" and any(field != "clave" for field in data.keys()):
-            raise HTTPException(status_code=403, detail="El root solo puede editar su contraseña")
+            raise HTTPException(status_code=403, detail="El usuario root solo puede editar su contraseña.")
         
         if request.state.payload["role"] not in ["admin", "cliente","root"]:
-            raise HTTPException(status_code=403, detail="No tienes permiso para editar esta cuenta")
+            raise HTTPException(status_code=403, detail="No se pudo acceder a la petición.")
         
-        user_db = await self.userservice.account_exists(db, data.get("usuario"), data.get("correo_electronico"), data.get("DNI"))
-
-
-        if not user_db:
-            if any(field == "clave" for field in data.keys()):
-                if any(field == "clave_actual" for field in data.keys()):
-                    old_pass = await self.userservice.get_user_pass(db, dni)
-                    if verify_password(data["clave_actual"], old_pass):
-                        await self.userservice.update_account(db, data, dni)
-                    else:
-                        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                detail="Contraseña ingresada incorrecta")
-                else:
-                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                detail="Contraseña ingresada vacia")  
+        if any(field == "clave" for field in data.keys()) and any(field == "clave_actual" for field in data.keys()):
+            old_pass = await self.userservice.get_user_pass(db, dni)
+            
+            if verify_password(data["clave_actual"], old_pass):
+                await self.userservice.update_account(db, data, dni)            
+                return {"detail": "Se actualizo la cuenta correctamente.", "success": True}
             else:
-                await self.userservice.update_account(db, data, dni)
-            if data.get("DNI") is not None:
-                    token = create_token({
-                        "sub": data["DNI"],
-                        "role": "cliente"
-                        })
-            else:
-                    token = create_token({
-                        "sub": dni,
-                        "role": "cliente"
-                        })
-            return  {"detail": "Se actualizo la cuenta correctamente.", "role": "cliente", "token": token}
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="Datos ya existentes")
-                            
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="La contraseña actual no coincide con la de la base de datos.")            
+        else:
+            await self.userservice.update_account(db, data, dni)
+            return {"detail": "Se actualizo la cuenta correctamente.", "success": True}

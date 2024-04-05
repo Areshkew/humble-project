@@ -15,7 +15,7 @@ class User(BaseModel):
     correo_electronico: Annotated[EmailStr, Field(...)]
     usuario: Annotated[str, Field(..., min_length=1, max_length=32)]
     clave: Annotated[str, Field(..., min_length=5, max_length=32)]
-    suscrito_noticias: Annotated[bool, None]
+    suscrito_noticias: Optional[bool] = None
     preferencias: Optional[List[Genre]] = Field(default=None, min_items=1, max_items=3)
 
 
