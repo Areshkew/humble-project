@@ -77,11 +77,11 @@ async def add_books_to_database(books_data):
                     paginas = random.randint(50, 500)
                 else:
                    pass
-
-
+                
                 book = LibroDAO(
                     ISSN=book_data['detalles']['ISBN'],
                     titulo=book_data['detalles']['titulo'],
+                    autor=book_data['detalles']['autor'],
                     num_paginas=int(paginas),
                     idioma=book_data['detalles']['idioma'],
                     fecha_publicacion=fecha,

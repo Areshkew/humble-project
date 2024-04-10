@@ -7,6 +7,7 @@ class LibroDAO(Base):
     __tablename__ = 'libros'
     ISSN = Column(String(16), primary_key=True, unique=True, nullable=False)
     titulo = Column(String(256), nullable=False)
+    autor = Column(String(128), nullable=False)
     num_paginas = Column(Integer, nullable=False)
     idioma = Column(String(32), nullable=False)
     fecha_publicacion = Column(Date, nullable=False)
