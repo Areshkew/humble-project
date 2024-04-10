@@ -1,4 +1,5 @@
 keys
+images
 **/__pycache__/
 .env
 /scripts/json/
