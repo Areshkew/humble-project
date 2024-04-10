@@ -1,3 +1,4 @@
 keys
 **/__pycache__/
 .env
+/scripts/json/

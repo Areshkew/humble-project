@@ -27,6 +27,12 @@
 
 ---
 
+# Funcionamiento de Script
+- Tenemos el script "book_population_scripts.py", para poder usar este lo que deben hacer es seguir los siguientes pasos:
+1. Tener dentro de la carpeta scripts una carpeta llamada "json", aca dentro es donde se podra guardar el json o los json, los cuales pueden seleccionar uno especificandolo en la ruta dentro del script. 
+
+2. Lo siguiente es llamar el script desde la carpeta raiz del proyecto, haciendo "python -m scripts.book_population_script", de esta manera se podra ejecutar el script en forma de modulo para que no haya ningun error y ya pueda realizar la populizacion deseada
+
 # Registro De Cambios
 
 Todos los cambios serán documentados en este archivo.
