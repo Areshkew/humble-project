@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 import random
+from tqdm import tqdm
 
 
 def read_json(file_path):
@@ -25,7 +26,7 @@ async def main():
 async def add_books_to_database(books_data):
     async with AsyncSession(engine) as session:
         try:
-            for book_data in books_data:
+            for book_data in tqdm(books_data, desc="Adding books", unit="book"):
 
 
                 editorial_name = book_data['detalles']['editorial']
@@ -76,11 +77,11 @@ async def add_books_to_database(books_data):
                     paginas = random.randint(50, 500)
                 else:
                    pass
-
-
+                
                 book = LibroDAO(
                     ISSN=book_data['detalles']['ISBN'],
                     titulo=book_data['detalles']['titulo'],
+                    autor=book_data['detalles']['autor'],
                     num_paginas=int(paginas),
                     idioma=book_data['detalles']['idioma'],
                     fecha_publicacion=fecha,
