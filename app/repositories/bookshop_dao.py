@@ -7,6 +7,7 @@ class LibroTiendaDAO(Base):
     id = Column(Integer, primary_key=True, unique=True, nullable=False)
     id_tienda = Column(Integer, ForeignKey('tienda.id'), nullable=False)
     ISSN = Column(String(16), ForeignKey('libros.ISSN'), nullable=False)
+    cantidad = Column(Integer)
 
     tienda_ref = relationship("TiendaDAO", back_populates="libros_tienda")
     libro_ref = relationship("LibroDAO")

@@ -14,6 +14,7 @@ class LibroDAO(Base):
     estado = Column(Boolean, nullable=False)  # 0: Nuevo, 1: Usado
     portada = Column(String(256))
     precio = Column(Float, nullable=False)
+    descuento = Column(Float, nullable=True)
     editorial = Column(Integer, ForeignKey('editoriales.id'), nullable=False)
 
     editorial_ref = relationship("EditorialDAO", back_populates="libros")

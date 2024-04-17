@@ -2,4 +2,5 @@ keys
 images
 **/__pycache__/
 .env
+.venv
 /scripts/json/

@@ -147,7 +147,8 @@ async def main():
                       'detalles/ano_publicacion': 'fecha_publicacion',
                       'detalles/estado': 'estado',
                       'detalles/img': 'portada',
-                      'precios/PrecioAhora': 'precio',
+                      'precios/PrecioAntes': 'precio',
+                      'precios/PrecioAhora': 'descuento',
                       'detalles/editorial': 'editorial',
                       'detalles/genero': 'genero',
                     }
@@ -162,7 +163,7 @@ async def main():
     data_path, data = await prepare_data_file_and_dict(input_file, column_mapping, genre_map)
     await upload_data(data_path, 'libros', [
         'titulo', 'autor', 'editorial', 'fecha_publicacion', 'idioma', 'num_paginas',
-        '\\\"ISSN\\\"', 'portada', 'resenia', 'estado', 'precio'
+        '\\\"ISSN\\\"', 'portada', 'resenia', 'estado', 'precio', 'descuento'
     ])
 
     print("Uploading book Genres...")
