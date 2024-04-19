@@ -1,5 +1,6 @@
 from fastapi.staticfiles import StaticFiles
 from app.controllers.book_controller import BookController
+from app.controllers.root_controller import RootController
 from app.middleware.auth_middleware import AuthMiddleware
 from app.services.user_service import UserService
 from app.utils.class_utils import inject
@@ -11,7 +12,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn, os
 
-@inject(UserController, BookController)
+@inject(UserController, BookController, RootController)
 class ServerBootstrap:
     """
         ServerBootstrap es responsable de inicializar el servidor.
@@ -25,6 +26,7 @@ class ServerBootstrap:
         self.app = app
         self.app.include_router(self.usercontroller.route, prefix='/api') 
         self.app.include_router(self.bookcontroller.route, prefix='/api') 
+        self.app.include_router(self.rootcontroller.route, prefix='/api') 
 
     def run(self):
         uvicorn.run(self.app, host="localhost", port=8000)

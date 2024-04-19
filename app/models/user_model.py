@@ -18,7 +18,6 @@ class User(BaseModel):
     suscrito_noticias: Optional[bool] = None
     preferencias: Optional[List[Genre]] = Field(default=None, min_items=1, max_items=3)
 
-
 class UserLogin(BaseModel):
     correo_electronico: Annotated[EmailStr, Field(...)]
     clave: Annotated[str, Field(..., min_length=5, max_length=32)]
@@ -51,3 +50,7 @@ class UserUpdate(BaseModel):
     clave_actual: Optional[str] = Field(default=None, min_length=5, max_length=32)
     suscrito_noticias: Optional[bool] = Field(default=None)
     preferencias: Optional[List[Genre]] = Field(default=None, min_items=1, max_items=3)
+
+class UserDNIDelete(BaseModel):
+    dnis: Annotated[List[Annotated[str, Field(min_length=7, max_length=10)]],
+                            Field(default=None, min_items=1, max_items=3)]

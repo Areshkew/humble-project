@@ -84,13 +84,14 @@ class UserController(Injectable):
     async def newpassword(self, user: UserNewPassword, db: Session = Depends(get_db_session)):
         data = user.model_dump()
 
-        success = await self.userservice.update_password(db, data["correo_electronico"], data["clave"], data["claveRepetida"])
+        if data["clave"] != data["claveRepetida"]:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Las contraseñas ingresadas no coinciden.")
+
+        success = await self.userservice.update_password(db, data["correo_electronico"], data["clave"])
 
         if success:
             return {"detail": "La contraseña se cambio con exito.", "Success": True}
-        
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="Las contraseñas ingresadas no coinciden.")
     
 
     async def getuserdata(self, user_fields: List[str], request: Request, db: Session = Depends(get_db_session)):

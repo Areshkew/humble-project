@@ -1,15 +1,15 @@
 from app.repositories.preferences_dao import PreferenciasDAO
+from app.repositories.securitycodes_dao import CodigoSeguridadDAO
 from app.repositories.user_dao import UsuarioDAO
 from app.repositories.userrole_dao import UsuarioRolDAO
-from app.repositories.securitycodes_dao import CodigoSeguridadDAO
-from app.utils.db_utils import hash_password
-from app.utils.db_data import generos, roles, root_data
 from app.utils.class_utils import Injectable
-from typing import List
+from app.utils.db_data import generos, roles, root_data
+from app.utils.db_utils import hash_password
 from datetime import datetime
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy import select, delete, func
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List
 import logging
 import random
 
@@ -121,7 +121,7 @@ class UserService(Injectable):
         }
     
 
-    async def create_account(self, db: AsyncSession, account_data: dict):
+    async def create_account(self, db: AsyncSession, account_data: dict, role: int = 3):
         """
             Crea una nueva cuenta de usuario en la base de datos.
         """
@@ -142,7 +142,7 @@ class UserService(Injectable):
             clave= hash_password(account_data["clave"] ), 
             suscrito_noticias=account_data.get("suscrito_noticias", False),
             saldo=0.0,
-            rol=3 # Cliente
+            rol=role # Cliente
         )
         
         try:
@@ -252,14 +252,11 @@ class UserService(Injectable):
             return False
 
     
-    async def update_password(self, db: AsyncSession, gmail: str, password: str, passwordRepeated: str) -> bool:
+    async def update_password(self, db: AsyncSession, gmail: str, password: str) -> bool:
         """
         Actualiza la contraseña de algun email de un usuario
 
         """
-        if password != passwordRepeated:
-            return False
-
         hashed_password = hash_password(password)
 
         # Buscar al usuario por su correo electrónico en la base de datos
