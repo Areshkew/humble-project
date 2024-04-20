@@ -63,7 +63,14 @@ class UserController(Injectable):
         if user_db["exists"]:
             codigo = await self.userservice.generate_recovery_code()
             await self.userservice.store_code(db, data["correo_electronico"], codigo) 
-            self.emailservice.send_email(data["correo_electronico"], "Codigo de recuperacion-Libhub", codigo)
+            self.emailservice.send_email(
+                            recipient=data["correo_electronico"],
+                            subject="[Libhub] - Codigo de recuperacion de contraseña",
+                            template_path='templates/password_recovery.html',
+                            html=True,
+                            template_data={'code': codigo, 'support_email': 'libhub.contact@gmail.com'}
+                        )
+            
             return {"detail": "Se envio el correo con exito.", "Success": "True"}
         
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
