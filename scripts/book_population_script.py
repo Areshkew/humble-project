@@ -45,8 +45,8 @@ async def add_books_to_database(books_data):
                     editorial_id = editorialbd
 
 
-                #Para el estado dar el valor booleano segun que es(0: Nuevo, 1: Usado)
-                estado = 0 if book_data['detalles']['estado'] == 'nuevo' else 1
+                #Para el estado dar el valor booleano segun que es(True: Nuevo, False: Usado)
+                estado = True if book_data['detalles']['estado'] == 'Nuevo' else False
 
 
                 #Para obtener el año de publicacion
@@ -77,17 +77,29 @@ async def add_books_to_database(books_data):
                     paginas = random.randint(50, 500)
                 else:
                    pass
+
+                #Valor random a precioantes si es vacio
+                PrecioAntes = book_data['precios']['PrecioAntes']
+                PrecioAhora = book_data['precios']['PrecioAhora']
+
+
+                if not PrecioAntes:
+                    PrecioAntes = random.randint(PrecioAhora , PrecioAhora+30000)
+                else:
+                    pass
                 
                 book = LibroDAO(
                     ISSN=book_data['detalles']['ISBN'],
                     titulo=book_data['detalles']['titulo'],
                     autor=book_data['detalles']['autor'],
+                    resenia=book_data['detalles']['resena'],
                     num_paginas=int(paginas),
                     idioma=book_data['detalles']['idioma'],
                     fecha_publicacion=fecha,
                     estado= estado,
                     portada=book_data['detalles']['img'],
-                    precio=float(book_data['precios']['PrecioAhora']),
+                    precio=float(PrecioAntes),
+                    descuento=float(PrecioAhora),
                     editorial=editorial_id
                 )
                 session.add(book)

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Cumpleaños Feliz</title>
+  <style type="text/css">
+    body {
+      background-color: #002122; /* Updated background color */
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: auto;
+      background-color: #f9f9f9;
+     
+    }
+    .header-image {
+      width: 100%;
+      text-align: center;
+      background-color: transparent;
+    }
+    .content {
+      text-align: center;
+      padding: 20px;
+      background-color: #ffffff;
+      color: #333333;
+    }
+    .discount-code {
+      font-size: 24px;
+      color: #FFA500; /* A festive color for the discount code */
+      margin: 20px 0;
+      padding: 10px;
+      background-color: #ffffff;
+      display: inline-block;
+    }
+    .button {
+      background-color: #008CBA; /* A button color that stands out */
+      border: none;
+      color: white;
+      padding: 15px 32px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      margin: 4px 2px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    .footer {
+      font-size: 12px;
+      text-align: center;
+      color: #aaaaaa;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header-image">
+      <img src="https://cdn.pixabay.com/photo/2023/12/07/08/34/couple-8435096_1280.png" alt="Balloons and Gift Box" style="width: 100%; max-width: 600px;" />
+    </div>
+    <div class="content">
+      <h1>¡FELIZ CUMPLEAÑOS {{name}}!</h1>
+      <p>Empieza la fiesta con un {{discount_percentage}}% de descuento.</p>
+      <p>Simplemente inicia sesión en nuestro sitio web o regístrate como miembro y aplica tu código único al momento de pagar.</p>
+      <div class="discount-code">{{discount_code}}</div>
+      <a href="{{shop_url}}" class="button">COMPRA LAS NOVEDADES</a>
+    </div>
+    <div class="footer">
+      Este es un correo electrónico generado automáticamente, por favor no respondas directamente.
+    </div>
+  </div>
+</body>
+</html>

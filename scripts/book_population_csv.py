@@ -103,7 +103,7 @@ async def prepare_data_file_and_dict(input_file, column_mapping, genre_map):
             genero_value = genre_map.get(row['detalles/genero'], row['detalles/genero'])
             row = {column_mapping.get(key, key): value for key, value in row.items() if column_mapping.get(key, key) in fieldnames}
             
-            row['estado'] = 0 if row['estado'] == 'nuevo' else 1
+            row['estado'] = True if row['estado'] == 'Nuevo' else False
 
             if not row['editorial']:
                 row['editorial'] = 'desconocido'

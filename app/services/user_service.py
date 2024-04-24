@@ -80,7 +80,7 @@ class UserService(Injectable):
         return user[0]
 
 
-    async def get_user_dni_role(self, db: AsyncSession, email: str): #Borrar
+    async def get_user_dni_role(self, db: AsyncSession, email: str): 
         """
             Obtener el usuario a través de su email.
         """
@@ -192,10 +192,10 @@ class UserService(Injectable):
 
         """
         # Caracteres alfanuméricos que se utilizarán para generar el código
-        characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+        characters = '0123456789'
         
         # Genera el código de recuperación aleatorio
-        recovery_code = ''.join(random.choice(characters) for i in range(8))
+        recovery_code = ''.join(random.choice(characters) for i in range(6))
         
         return recovery_code
     
