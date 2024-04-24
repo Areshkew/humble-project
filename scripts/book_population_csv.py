@@ -147,8 +147,8 @@ async def main():
                       'detalles/ano_publicacion': 'fecha_publicacion',
                       'detalles/estado': 'estado',
                       'detalles/img': 'portada',
-                      'precios/PrecioAntes': 'precio',
-                      'precios/PrecioAhora': 'descuento',
+                      'precios/PrecioAhora': 'precio',
+                      'precios/PrecioAntes': 'descuento',
                       'detalles/editorial': 'editorial',
                       'detalles/genero': 'genero',
                     }
