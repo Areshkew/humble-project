@@ -105,6 +105,9 @@ async def prepare_data_file_and_dict(input_file, column_mapping, genre_map):
             
             row['estado'] = True if row['estado'] == 'Nuevo' else False
 
+            if not row['precio']:
+                row['precio'] = row['descuento']
+
             if not row['editorial']:
                 row['editorial'] = 'desconocido'
 
@@ -147,8 +150,8 @@ async def main():
                       'detalles/ano_publicacion': 'fecha_publicacion',
                       'detalles/estado': 'estado',
                       'detalles/img': 'portada',
-                      'precios/PrecioAntes': 'precio',
                       'precios/PrecioAhora': 'descuento',
+                      'precios/PrecioAntes': 'precio',
                       'detalles/editorial': 'editorial',
                       'detalles/genero': 'genero',
                     }
@@ -163,7 +166,7 @@ async def main():
     data_path, data = await prepare_data_file_and_dict(input_file, column_mapping, genre_map)
     await upload_data(data_path, 'libros', [
         'titulo', 'autor', 'editorial', 'fecha_publicacion', 'idioma', 'num_paginas',
-        '\\\"ISSN\\\"', 'portada', 'resenia', 'estado', 'precio', 'descuento'
+        '\\\"ISSN\\\"', 'portada', 'resenia', 'estado', 'descuento', 'precio' 
     ])
 
     print("Uploading book Genres...")

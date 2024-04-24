@@ -1,7 +1,6 @@
 from app.models.user_model import User, UserUpdate
 from app.services.root_service import RootService
 from app.services.user_service import UserService
-from app.utils.auth import create_token
 from app.utils.db_utils import get_db_session
 from app.utils.class_utils import Injectable, inject
 from app.models.user_model import UserDNIDelete
