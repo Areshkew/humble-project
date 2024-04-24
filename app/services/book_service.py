@@ -1,9 +1,10 @@
 from app.repositories.book_dao import LibroDAO
 from app.repositories.bookgenre_dao import LibroGeneroDAO
 from app.repositories.genre_dao import GeneroDAO
+from app.repositories.publishing_dao import EditorialDAO
 from app.utils.class_utils import Injectable
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, func, asc, desc
+from sqlalchemy import select, func, asc, desc
 from datetime import datetime
 
 class BookService(Injectable):
@@ -36,6 +37,9 @@ class BookService(Injectable):
         Obtener libros filtrados según los parámetros proporcionados y paginado.
         """
         stmt = select(LibroDAO)
+
+        # Nombre de editorial
+        stmt = select(LibroDAO, EditorialDAO.editorial).join(EditorialDAO, LibroDAO.editorial == EditorialDAO.id)
 
         # Filtrar por género
         if filters["category"] is not None:
@@ -84,13 +88,16 @@ class BookService(Injectable):
         offset = (page - 1) * size
         stmt = stmt.limit(size).offset(offset)
 
-
         # Busqueda del stmt normal
         result = await db.execute(stmt)
-        books = result.scalars().all()
+        books = result.fetchall()
 
         if books:
-            books_list = [{key: value for key, value in book.__dict__.items()} for book in books]
+            books_list = []
+            for book, editorial_name in books:
+                book_dict = {key: value for key, value in book.__dict__.items()}
+                book_dict["editorial"] = editorial_name
+                books_list.append(book_dict)
             return books_list, total_pages
-        
+            
         return None, total_pages
