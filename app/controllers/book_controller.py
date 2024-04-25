@@ -11,6 +11,7 @@ class BookController(Injectable):
         self.route = APIRouter(prefix='/book')
         self.route.add_api_route("/search", self.search_books, methods=["GET"])
         self.route.add_api_route("/getbooks", self.get_books, methods=["GET"])
+        self.route.add_api_route("/getinformation", self.get_information, methods=["GET"])
     
     
     async def search_books(self, q: str = Query(..., min_length=3, max_length=50), db: Session = Depends(get_db_session)):
@@ -83,3 +84,13 @@ class BookController(Injectable):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El número de página solicitado excede el número total de páginas.")
 
         return {"books": books, "total_pages": total_pages}
+
+
+    async def get_information(self, id: str, db: Session = Depends(get_db_session)):
+
+        book_info = await self.bookservice.get_information(db, id)
+
+        if book_info:
+            return book_info
+        else:
+            raise HTTPException(status_code=404, detail="Libro no encontrado")
