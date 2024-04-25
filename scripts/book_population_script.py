@@ -84,7 +84,7 @@ async def add_books_to_database(books_data):
 
 
                 if not PrecioAntes:
-                    PrecioAntes = random.randint(PrecioAhora , PrecioAhora+30000)
+                    PrecioAntes = PrecioAhora
                 else:
                     pass
                 
