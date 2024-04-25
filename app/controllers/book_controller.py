@@ -10,8 +10,8 @@ class BookController(Injectable):
     def __init__(self):
         self.route = APIRouter(prefix='/book')
         self.route.add_api_route("/search", self.search_books, methods=["GET"])
-        self.route.add_api_route("/getbooks", self.get_books, methods=["GET"])
-        self.route.add_api_route("/getinformation", self.get_information, methods=["GET"])
+        self.route.add_api_route("/explore", self.explore_books, methods=["GET"])
+        self.route.add_api_route("/{id}", self.book_information, methods=["GET"])
     
     
     async def search_books(self, q: str = Query(..., min_length=3, max_length=50), db: Session = Depends(get_db_session)):
@@ -24,7 +24,7 @@ class BookController(Injectable):
                             detail="No se encontraron resultados.")
     
 
-    async def get_books(self, page: int = 1, size: int = 15, category: str = None, min_price: int = None, max_price: int = None, 
+    async def explore_books(self, page: int = 1, size: int = 15, category: str = None, min_price: int = None, max_price: int = None, 
                         price_order: str = None, publication_date: str = None, state: bool = None, language: str = None, 
                         db: Session = Depends(get_db_session)):  #price_order = "min_max" or "max_min" #publication_date = YY-MM-DD     
             
@@ -86,7 +86,7 @@ class BookController(Injectable):
         return {"books": books, "total_pages": total_pages}
 
 
-    async def get_information(self, id: str, db: Session = Depends(get_db_session)):
+    async def book_information(self, id: str, db: Session = Depends(get_db_session)):
 
         book_info = await self.bookservice.get_information(db, id)
 
