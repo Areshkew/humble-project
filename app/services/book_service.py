@@ -101,3 +101,38 @@ class BookService(Injectable):
             return books_list, total_pages
             
         return None, total_pages
+    
+    
+    async def get_information(self, db: AsyncSession, id: str):
+        """
+        Obtener toda la información de un libro por su ID.
+        """
+
+        book = await db.get(LibroDAO, id)
+
+        if book:
+            # Obtener el nombre de la editorial
+            editorial_name = await db.scalar(select(EditorialDAO.editorial).where(EditorialDAO.id == book.editorial))
+
+            # Obtener el nombre del género del libro
+            genre_name = await db.scalar(select(GeneroDAO.genero).join(LibroGeneroDAO).where(LibroGeneroDAO.ISSN == id))
+
+            book_info = {
+                "ISSN": book.ISSN,
+                "titulo": book.titulo,
+                "autor": book.autor,
+                "resenia": book.resenia,
+                "num_paginas": book.num_paginas,
+                "idioma": book.idioma,
+                "fecha_publicacion": book.fecha_publicacion,
+                "estado": book.estado,
+                "portada": book.portada,
+                "precio": book.precio,
+                "descuento": book.descuento,
+                "editorial": editorial_name,
+                "genero": genre_name
+            }
+
+            return book_info
+        else:
+            return None
