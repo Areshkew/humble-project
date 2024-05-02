@@ -17,8 +17,8 @@ class ShopController(Injectable):
 
 
     async def get_shops(self, request: Request, db: Session = Depends(get_db_session)):
-        if request.state.payload["role"] != "admin":
-            raise HTTPException(status_code=403, detail="Este recurso solo puede ser accedido por el usuario admin.")
+        if request.state.payload["role"] not in ["admin", "root"]:
+            raise HTTPException(status_code=403, detail="Este recurso solo puede ser accedido por el usuario admin y root.")
         
         shops = await self.shopservice.get_shops(db)
         
@@ -29,8 +29,8 @@ class ShopController(Injectable):
 
 
     async def create_shop(self, shop: Shop, request: Request, db: Session = Depends(get_db_session)):
-        if request.state.payload["role"] != "admin":
-            raise HTTPException(status_code=403, detail="Este recurso solo puede ser accedido por el usuario admin.")
+        if request.state.payload["role"] not in ["admin", "root"]:
+            raise HTTPException(status_code=403, detail="Este recurso solo puede ser accedido por el usuario admin y root.")
         
         data = shop.model_dump()
 
@@ -40,8 +40,8 @@ class ShopController(Injectable):
 
 
     async def delete_shop(self, shop_ids: ShopDNIDelete, request: Request, db: Session = Depends(get_db_session)):
-        if request.state.payload["role"] != "admin":
-            raise HTTPException(status_code=403, detail="Este recurso solo puede ser accedido por el usuario admin.")
+        if request.state.payload["role"] not in ["admin", "root"]:
+            raise HTTPException(status_code=403, detail="Este recurso solo puede ser accedido por el usuario admin y root.")
         
         shop_ids = shop_ids.model_dump()
 
@@ -51,8 +51,8 @@ class ShopController(Injectable):
         
 
     async def edit_shop(self, shop_id: int, shop_data: ShopUpdate, request: Request, db: Session = Depends(get_db_session)):
-        if request.state.payload["role"] != "admin":
-            raise HTTPException(status_code=403, detail="Este recurso solo puede ser accedido por el usuario admin.")
+        if request.state.payload["role"] not in ["admin", "root"]:
+            raise HTTPException(status_code=403, detail="Este recurso solo puede ser accedido por el usuario admin y root.")
         
         data = shop_data.model_dump()
         
@@ -63,8 +63,8 @@ class ShopController(Injectable):
         
 
     async def shop_information(self, shop_id: int, request: Request, db: Session = Depends(get_db_session)):
-        if request.state.payload["role"] != "admin":
-            raise HTTPException(status_code=403, detail="Este recurso solo puede ser accedido por el usuario admin.")
+        if request.state.payload["role"] not in ["admin", "root"]:
+            raise HTTPException(status_code=403, detail="Este recurso solo puede ser accedido por el usuario admin y root.")
         
         shop = await self.shopservice.get_shop_by_id(shop_id, db)
         
