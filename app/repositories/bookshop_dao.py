@@ -5,8 +5,8 @@ from sqlalchemy.orm import relationship
 class LibroTiendaDAO(Base):
     __tablename__ = 'libros_tienda'
     id = Column(Integer, primary_key=True, unique=True, nullable=False)
-    id_tienda = Column(Integer, ForeignKey('tienda.id'), nullable=False)
-    ISSN = Column(String(16), ForeignKey('libros.ISSN'), nullable=False)
+    id_tienda = Column(Integer, ForeignKey('tienda.id', onupdate='CASCADE'), nullable=False)
+    ISSN = Column(String(16), ForeignKey('libros.ISSN', onupdate='CASCADE'), nullable=False)
     cantidad = Column(Integer)
 
     tienda_ref = relationship("TiendaDAO", back_populates="libros_tienda")
