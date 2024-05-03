@@ -11,7 +11,7 @@ class LibroDAO(Base):
     num_paginas = Column(Integer, nullable=False)
     idioma = Column(String(32), nullable=False)
     fecha_publicacion = Column(Date, nullable=False)
-    estado = Column(Boolean, nullable=False)  # 0: Nuevo, 1: Usado
+    estado = Column(Boolean, nullable=False)  # 1: Nuevo, 0: Usado
     portada = Column(String(256))
     precio = Column(Float, nullable=False)
     descuento = Column(Float, nullable=True)

@@ -110,7 +110,7 @@ class UserService(Injectable):
         fields_taken = {
             key: getattr(account, key, None) == value for key, value in {
                 "usuario": username,
-                "correo": email,
+                "correo_electronico": email,
                 "dni": dni
             }.items() if account and getattr(account, key, None) == value
         }

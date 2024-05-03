@@ -1,7 +1,11 @@
+from mimetypes import guess_extension
+import os, base64
+from typing import Optional
+from app.models.book_model import Book, BookISSNDelete
 from app.services.book_service import BookService
 from app.utils.class_utils import Injectable, inject
 from app.utils.db_utils import get_db_session
-from fastapi import APIRouter, HTTPException, status, Depends, Request
+from fastapi import APIRouter, HTTPException, UploadFile, status, Depends, Request
 from fastapi.params import Query
 from sqlalchemy.orm import Session
 
@@ -12,6 +16,8 @@ class BookController(Injectable):
         self.route.add_api_route("/search", self.search_books, methods=["GET"])
         self.route.add_api_route("/explore", self.explore_books, methods=["GET"])
         self.route.add_api_route("/{id}", self.book_information, methods=["GET"])
+        self.route.add_api_route("/delete-books", self.delete_books, methods=["POST"])
+        self.route.add_api_route("/create-book", self.create_book, methods=["POST"])
     
     
     async def search_books(self, q: str = Query(..., min_length=3, max_length=50), db: Session = Depends(get_db_session)):
@@ -94,3 +100,51 @@ class BookController(Injectable):
             return book_info
         else:
             raise HTTPException(status_code=404, detail="Libro no encontrado")
+        
+    async def delete_books(self, request: Request, issn_list: BookISSNDelete, db: Session = Depends(get_db_session)):
+        if request.state.payload["role"] != "root" and request.state.payload["role"] != "admin":
+            raise HTTPException(status_code=403, detail="Este recurso solo puede ser accedido por el usuario root o admin.")
+
+        issn_list = issn_list.model_dump()
+        
+        await self.bookservice.delete_books(db, issn_list["issn_list"])
+
+        return {"success": True}
+    
+    async def create_book(self,
+        book_data: Book,
+        request: Request,
+        db: Session = Depends(get_db_session)
+    ):
+        book_dict = book_data.model_dump()
+        book = await self.bookservice.book_exists(db, book_dict["ISSN"]) 
+        print(book)
+
+        if request.state.payload["role"] != "root" and request.state.payload["role"] != "admin":
+            raise HTTPException(status_code=403, detail="Este recurso solo puede ser accedido por el usuario root o admin.")
+        
+        if book:
+            raise HTTPException(status_code=403, detail="El libro ya existe en la base de datos.")
+
+        # 
+        image_folder = 'images/uploaded'
+        os.makedirs(image_folder, exist_ok=True)
+        
+        # Extraer MIME type y decodificar
+        header, encoded = book_dict['portada'].split(',')
+        mime_type = header.split(';')[0].split(':')[1]
+        image_data = base64.b64decode(encoded)
+        file_extension = guess_extension(mime_type) or '.bin'
+
+        file_path = os.path.join(image_folder, f"{book_dict['ISSN']}{file_extension}")
+        book_dict["portada"] = file_path
+
+        # Guardar imagen al sistema de archivos
+        with open(file_path, "wb") as file:
+            file.write(image_data)
+
+        # Agregar a DB
+        await self.bookservice.create_book(db, book_dict)
+
+        return { "Success": True }
+        

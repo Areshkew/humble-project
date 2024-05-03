@@ -22,7 +22,6 @@ class UserController(Injectable):
 
     async def login(self, user: UserLogin, db: Session = Depends(get_db_session)):
         data = user.model_dump()
-
         user_db = await self.userservice.get_user_dni_role(db, data["correo_electronico"])
 
         if user_db:
@@ -121,7 +120,7 @@ class UserController(Injectable):
         
         data = {key: value for key, value in data.items() if value is not None} #Filtrar datos que no sean default
         
-        if request.state.payload["role"] == "root" and any(field != "clave" for field in data.keys()):
+        if request.state.payload["role"] == "root" and any( (field != "clave" and field != "clave_actual" and field != "confirmar-clave") for field in data.keys()):
             raise HTTPException(status_code=403, detail="El usuario root solo puede editar su contraseña.")
         
         if request.state.payload["role"] not in ["admin", "cliente","root"]:

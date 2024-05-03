@@ -4,25 +4,28 @@ from app.repositories.genre_dao import GeneroDAO
 from app.repositories.publishing_dao import EditorialDAO
 from app.utils.class_utils import Injectable
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, asc, desc
+from sqlalchemy import select, func, asc, desc, delete
 from datetime import datetime
+from sqlalchemy.exc import IntegrityError
 
 class BookService(Injectable):
-    async def book_search(self, db: AsyncSession, query: str):
+    async def book_search(self, db: AsyncSession, query: str, max_results: int = 7):
         """
             Realizar busqueda de libros a través de una query.
         """  
-        max_results = 7
         formatted_query = ' & '.join(query.split())
         
         stmt = select(LibroDAO).where(
                     func.to_tsvector("spanish", 
-                            func.concat(LibroDAO.titulo) # TODO: Add more fields if necessary.
+                            func.concat(LibroDAO.titulo, " ", LibroDAO.autor, " ", LibroDAO.ISSN) # TODO: Add more fields if necessary.
                         ).bool_op("@@")(
                             func.to_tsquery("spanish", formatted_query)
                         )
-                ).limit(max_results)
+                )
         
+        if max_results != -1:
+            stmt = stmt.limit(max_results)
+
         result = await db.execute(stmt)
         books = result.scalars().all()
         
@@ -135,4 +138,72 @@ class BookService(Injectable):
 
             return book_info
         else:
+            return None
+
+    async def delete_books(self, db: AsyncSession, issn_list: list):
+        """
+            Borrar libros basado en una lista de ISSN. 
+        """
+        stmt = delete(LibroDAO).where(LibroDAO.ISSN.in_(issn_list))
+        result = await db.execute(stmt)
+        
+        await db.commit()
+        return result.rowcount 
+    
+    async def book_exists(self, db: AsyncSession, ISSN: str) -> bool:
+        """
+            Verifica si existe una cuenta con el mismo nombre de usuario, correo electrónico o DNI.
+        """
+        stmt = select(
+            LibroDAO.ISSN,
+        ).where(
+            LibroDAO.ISSN == ISSN
+        )
+        result = await db.execute(stmt)
+        book = result.first()
+    
+        return book is not None
+    
+    async def create_book(self, db: AsyncSession, book_data: dict):
+        """
+        Crear un nuevo libro en la base de datos.
+        """
+        # 
+        editorial_name = book_data.get('editorial')
+
+        # Buscar editorial
+        editorial_query = select(EditorialDAO).where(EditorialDAO.editorial == editorial_name)
+        editorial_result = await db.execute(editorial_query)
+        editorial = editorial_result.scalars().first()
+
+        if not editorial:
+            new_editorial = EditorialDAO(editorial=editorial_name)
+            db.add(new_editorial)
+            await db.commit()
+            await db.refresh(new_editorial)
+            editorial_id = new_editorial.id
+        else:
+            editorial_id = editorial.id
+
+        # Remover genero del diccionario y almacenarlo.
+        genre_id = book_data.pop('genero', None)
+
+        # 
+        book_data['editorial'] = editorial_id
+        new_book = LibroDAO(**book_data)
+
+        try:
+            db.add(new_book)
+            await db.commit()
+            await db.refresh(new_book)
+
+            # Después que el libro es creado manejar creación de genero
+            if genre_id is not None:
+                new_libro_genero = LibroGeneroDAO(id_genero=genre_id, ISSN=new_book.ISSN)
+                db.add(new_libro_genero)
+                await db.commit()
+
+            return True
+        except IntegrityError:
+            await db.rollback()
             return None
