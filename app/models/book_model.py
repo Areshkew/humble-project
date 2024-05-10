@@ -29,3 +29,27 @@ class Book(BaseModel):
             except ValueError:
                 raise ValueError("Formato de fecha Inválido")
         return value
+
+class BookUpdate(BaseModel):
+    ISSN: Optional[str] = Field(default=None, min_length=13, max_length=13, pattern=r'^\d{13}$')
+    autor: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    descuento: Optional[float] = Field(default=None, gt=0)
+    editorial: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    estado: Optional[bool] = Field(default=None)
+    fecha_publicacion: Optional[datetime] = Field(default=None)
+    genero: Optional[int] = Field(default=None)
+    idioma: Optional[str] = Field(default=None, min_length=1, max_length=50)
+    num_paginas: Optional[int] = Field(default=None, gt=0)
+    precio: Optional[float] = Field(default=None, gt=0)
+    resenia: Optional[str] = Field(default=None, min_length=1, max_length=500)
+    titulo: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    portada: Optional[str] = Field(default=None)
+
+    @validator('fecha_publicacion', pre=True)
+    def parse_fecha_publicacion(cls, value):
+        if isinstance(value, str):
+            try:
+                return datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%fZ")
+            except ValueError:
+                raise ValueError("Formato de fecha Inválido")
+        return value

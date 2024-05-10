@@ -207,3 +207,43 @@ class BookService(Injectable):
         except IntegrityError:
             await db.rollback()
             return None
+    
+    async def update_book(self, book_data: dict, ISSN: str, db: AsyncSession):
+        book = await db.get(LibroDAO, ISSN)
+
+        if "editorial" in book_data:
+            editorial_name = book_data.get('editorial')
+
+            # Buscar editorial
+            editorial_query = select(EditorialDAO).where(EditorialDAO.editorial == editorial_name)
+            editorial_result = await db.execute(editorial_query)
+            editorial = editorial_result.scalars().first()
+
+            if not editorial:
+                new_editorial = EditorialDAO(editorial=editorial_name)
+                db.add(new_editorial)
+                await db.commit()
+                await db.refresh(new_editorial)
+                editorial_id = new_editorial.id
+            else:
+                editorial_id = editorial.id
+            # 
+            book_data['editorial'] = editorial_id
+
+        # Remover genero del diccionario y almacenarlo.
+        genre_id = book_data.pop('genero', None)
+
+        try:
+            for key, value in book_data.items():
+                setattr(book, key, value)
+
+            if genre_id is not None:
+                libro_genero = await db.execute(select(LibroGeneroDAO).filter(LibroGeneroDAO.ISSN == ISSN))
+                libro_genero = libro_genero.scalars().first()
+                libro_genero.id_genero = genre_id
+                
+            await db.commit()
+
+        except IntegrityError:
+            await db.rollback()
+            return None
