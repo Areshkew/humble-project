@@ -158,7 +158,7 @@ class BookController(Injectable):
         data = book_data.model_dump()
         data = {key: value for key, value in data.items() if value is not None} #Filtrar datos que no sean default
 
-        if data["portada"]:
+        if "portada" in data and data["portada"]:
             image_folder = 'images/uploaded'
             os.makedirs(image_folder, exist_ok=True)
             
