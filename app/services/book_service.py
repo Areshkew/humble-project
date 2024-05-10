@@ -15,13 +15,13 @@ class BookService(Injectable):
         """  
         formatted_query = ' & '.join(query.split())
         
-        stmt = select(LibroDAO).where(
-                    func.to_tsvector("spanish", 
-                            func.concat(LibroDAO.titulo, " ", LibroDAO.autor, " ", LibroDAO.ISSN) # TODO: Add more fields if necessary.
-                        ).bool_op("@@")(
-                            func.to_tsquery("spanish", formatted_query)
-                        )
-                )
+        stmt = select(LibroDAO, EditorialDAO).join(EditorialDAO, LibroDAO.editorial == EditorialDAO.id).where(
+                func.to_tsvector("spanish", 
+                        func.concat(LibroDAO.titulo, " ", LibroDAO.autor, " ", LibroDAO.ISSN, " ", EditorialDAO.editorial) # Incluir el nombre de la editorial
+                    ).bool_op("@@")(
+                        func.to_tsquery("spanish", formatted_query)
+                    )
+            )
         
         if max_results != -1:
             stmt = stmt.limit(max_results)
