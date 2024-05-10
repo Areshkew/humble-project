@@ -58,6 +58,13 @@ class BookService(Injectable):
         if filters["max_price"] is not None:
             stmt = stmt.where(LibroDAO.precio <= filters["max_price"])
 
+        # Filtrar por rango de paginas
+        if filters["min_page"] is not None:
+            stmt = stmt.where(LibroDAO.num_paginas >= filters["min_page"])
+
+        if filters["max_page"] is not None:
+            stmt = stmt.where(LibroDAO.num_paginas <= filters["max_page"])
+
         # Filtrar por fecha de publicación
         if filters["publication_date"] is not None:
             publication_date = datetime.strptime(filters["publication_date"], "%Y-%m-%d").date()
