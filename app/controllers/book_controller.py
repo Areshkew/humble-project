@@ -32,7 +32,7 @@ class BookController(Injectable):
     
 
     async def explore_books(self, page: int = 1, size: int = 15, category: str = None, min_price: int = None, max_price: int = None, 
-                        price_order: str = None, start_date: str = None, end_date: str = None, state: bool = None, language: str = None, min_page: int = None, max_page: int = None,
+                        price_order: str = None, start_date: str = None, end_date: str = None, year_filter: int = None,state: bool = None, language: str = None, min_page: int = None, max_page: int = None,
                         db: Session = Depends(get_db_session)):  #price_order = "min_max" or "max_min" #publication_date = YY-MM-DD     
             
         if size > 30:
@@ -68,6 +68,11 @@ class BookController(Injectable):
             "thriller_legal": "Thriller Legal",
             "viajes_y_geografia": "Viajes y Geografía"
         }
+
+        if year_filter is not None and start_date is None and end_date is None:
+            start_date = f"{year_filter}-01-01"
+            end_date = f"{year_filter}-12-31"
+
 
         if category is not None:
             category = generos_dict.get(category)

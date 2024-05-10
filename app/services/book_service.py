@@ -70,6 +70,9 @@ class BookService(Injectable):
             start_date = datetime.strptime(filters["start_date"], "%Y-%m-%d").date()
             end_date = datetime.strptime(filters["end_date"], "%Y-%m-%d").date()
             stmt = stmt.where(LibroDAO.fecha_publicacion.between(start_date, end_date))
+
+
+
             
         # Filtrar por estado
         if filters["state"] is not None:
