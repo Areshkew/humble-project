@@ -31,7 +31,7 @@ class BookController(Injectable):
     
 
     async def explore_books(self, page: int = 1, size: int = 15, category: str = None, min_price: int = None, max_price: int = None, 
-                        price_order: str = None, publication_date: str = None, state: bool = None, language: str = None, 
+                        price_order: str = None, publication_date: str = None, state: bool = None, language: str = None, min_page: int = None, max_page: int = None,
                         db: Session = Depends(get_db_session)):  #price_order = "min_max" or "max_min" #publication_date = YY-MM-DD     
             
         if size > 30:
@@ -80,7 +80,9 @@ class BookController(Injectable):
             "price_order": price_order,
             "publication_date": publication_date,
             "state": state,
-            "language": language
+            "language": language,
+            "min_page": min_page,
+            "max_page": max_page
         }
 
         # Llamada al servicio para obtener los libros filtrados
