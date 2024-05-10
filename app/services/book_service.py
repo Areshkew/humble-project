@@ -65,11 +65,15 @@ class BookService(Injectable):
         if filters["max_page"] is not None:
             stmt = stmt.where(LibroDAO.num_paginas <= filters["max_page"])
 
-        # Filtrar por fecha de publicación
-        if filters["publication_date"] is not None:
-            publication_date = datetime.strptime(filters["publication_date"], "%Y-%m-%d").date()
-            stmt = stmt.where(LibroDAO.fecha_publicacion == publication_date)
+         # Filtrar por rango de fecha de publicación
+        if filters["start_date"] is not None and filters["end_date"] is not None:
+            start_date = datetime.strptime(filters["start_date"], "%Y-%m-%d").date()
+            end_date = datetime.strptime(filters["end_date"], "%Y-%m-%d").date()
+            stmt = stmt.where(LibroDAO.fecha_publicacion.between(start_date, end_date))
 
+
+
+            
         # Filtrar por estado
         if filters["state"] is not None:
             stmt = stmt.where(LibroDAO.estado == filters["state"])
