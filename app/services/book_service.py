@@ -17,7 +17,7 @@ class BookService(Injectable):
         
         stmt = select(LibroDAO, EditorialDAO).join(EditorialDAO, LibroDAO.editorial == EditorialDAO.id).where(
                 func.to_tsvector("spanish", 
-                        func.concat(LibroDAO.titulo, " ", LibroDAO.autor, " ", LibroDAO.ISSN, " ", EditorialDAO.editorial) # Incluir el nombre de la editorial
+                        func.concat(LibroDAO.titulo, " ", LibroDAO.autor, " ", LibroDAO.ISSN, " ", EditorialDAO.editorial, " ", LibroDAO.precio) # Incluir el nombre de la editorial
                     ).bool_op("@@")(
                         func.to_tsquery("spanish", formatted_query)
                     )
@@ -53,10 +53,10 @@ class BookService(Injectable):
 
         # Filtrar por rango de precios
         if filters["min_price"] is not None:
-            stmt = stmt.where(LibroDAO.precio >= filters["min_price"])
+            stmt = stmt.where(LibroDAO.descuento >= filters["min_price"])
 
         if filters["max_price"] is not None:
-            stmt = stmt.where(LibroDAO.precio <= filters["max_price"])
+            stmt = stmt.where(LibroDAO.descuento <= filters["max_price"])
 
         # Filtrar por rango de paginas
         if filters["min_page"] is not None:
