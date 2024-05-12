@@ -10,20 +10,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
 
       - name: Set up SSH key
         run: |
-          env
           mkdir -p ~/.ssh
           echo "${{ secrets.ARTIFACT_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -p 22 ${{ secrets.ARTIFACT_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy to server
+        env:
+          USER: ${{ secrets.USER }}
+          HOST: ${{ secrets.HOST }}
+          APP_PATH: ${{ secrets.APP_PATH }}
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.USER }}@${{ secrets.HOST }} <<'ENDSSH'
-          cd ${{ secrets.APP_PATH }}
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa $USER@$HOST <<'ENDSSH'
+          cd $APP_PATH
           git pull
 
           ### Configure the Environment
@@ -34,9 +36,6 @@ jobs:
           # Kill the currently running Python process
           pkill -f 'python main.py'
           
-          # Restart the process
+          # Restart the process in the background properly
           nohup python main.py &
           ENDSSH
-
-          
-          
