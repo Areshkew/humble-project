@@ -13,10 +13,10 @@ jobs:
         uses: actions/checkout@v4
         
       - name: Set up SSH
-        uses: tiyee/action-ssh@v1.0.1
+        uses: GPTED/SSH-My-Action@0.1
         with:
-          username: ${{ secrets.SSH_USER }}
-          privateKey: ${{ secrets.SSH_PRIVATE_KEY }}
-          host: ${{ secrets.SSH_HOST }}
-          port: 22
-          command: 'echo "hola mundo !"'
+          USER: ${{ secrets.SSH_USER }}
+          PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          HOST: ${{ secrets.SSH_HOST }}
+          PORT: 22
+          CMD: 'echo "hola mundo !"'
