@@ -25,13 +25,14 @@ class ServerBootstrap:
     
     def __init__(self, app: FastAPI):
         self.app = app
+        self.HOST = os.getenv("HOST")
         self.app.include_router(self.usercontroller.route, prefix='/api') 
         self.app.include_router(self.bookcontroller.route, prefix='/api') 
         self.app.include_router(self.rootcontroller.route, prefix='/api') 
         self.app.include_router(self.shopcontroller.route, prefix='/api')
 
     def run(self):
-        uvicorn.run(self.app, host="localhost", port=8000)
+        uvicorn.run(self.app, host=self.HOST, port=8000)
 
     @asynccontextmanager
     @staticmethod
