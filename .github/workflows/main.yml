@@ -30,7 +30,7 @@ jobs:
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.PATH }} && . .venv/bin/activate && ~/.cargo/bin/uv pip install -r requirements.txt"
           echo "Dependencies verified and installed."
           
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "pgrep -f 'python main.py' > /dev/null && pkill -f 'python main.py' || echo 'No process found.'"
+          ssh -v ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "pgrep -f 'python main.py' > /dev/null && pkill -f 'python main.py' || echo 'No process found.'"
           echo "Old server process killed."
 
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.PATH }} && . .venv/bin/activate && nohup python main.py &"
