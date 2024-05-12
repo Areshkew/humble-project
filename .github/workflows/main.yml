@@ -19,4 +19,4 @@ jobs:
           privateKey: ${{ secrets.SSH_PRIVATE_KEY }}
           host: ${{ secrets.SSH_HOST }}
           port: 22
-          command: 'echo "hola mundo"'
+          command: 'echo "hola mundo !"'
