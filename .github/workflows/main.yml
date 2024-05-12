@@ -27,7 +27,7 @@ jobs:
 
       - name: Restart Backend Server
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.PATH }} && . .venv/bin/activate && uv pip install -r requirements.txt"
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.PATH }} && . .venv/bin/activate && ~/.cargo/bin/uv pip install -r requirements.txt"
           echo "Dependencies verified and installed."
           
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.PATH }} && pkill -f 'python main.py'"
