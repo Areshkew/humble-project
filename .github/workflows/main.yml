@@ -18,6 +18,10 @@ jobs:
           echo "${{ secrets.ARTIFACT_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
+      - name: Test SSH Connection
+        run: |
+          ssh -vvv -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.USER }}@${{ secrets.HOST }} "echo 'SSH connection successful'"
+    
       - name: Deploy to server
         env:
           USER: ${{ secrets.USER }}
