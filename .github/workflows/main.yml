@@ -11,35 +11,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-
-      - name: Set up SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.ARTIFACT_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-
-      - name: Test SSH Connection
-        run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.USER }}@${{ secrets.HOST }} "echo 'SSH connection successful'"
-    
-      - name: Deploy to server
-        env:
-          USER: ${{ secrets.USER }}
-          HOST: ${{ secrets.HOST }}
-          APP_PATH: ${{ secrets.APP_PATH }}
-        run: |
-          ssh -i ~/.ssh/id_rsa $USER@$HOST <<'ENDSSH'
-          cd $APP_PATH
-          git pull
-
-          ### Configure the Environment
-          source .venv/bin/activate
-          uv pip install -r requirements.txt
-
-          ### Restart the server
-          # Kill the currently running Python process
-          pkill -f 'python main.py'
-          
-          # Restart the process in the background properly
-          nohup python main.py &
-          ENDSSH
+        
+      - name: Set up SSH
+        uses: Sithi5/remote-ssh-commands-action@1.1.2
+        with:
+          SSH_USER: ${{ secrets.USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.ARTIFACT_SSH_KEY }}
+          SSH_HOST: ${{ secrets.HOST }}
+          SSH_REMOTE_COMMANDS: | 
+            echo "Prueba."
