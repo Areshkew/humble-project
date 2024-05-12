@@ -15,13 +15,13 @@ class BookService(Injectable):
         """  
         formatted_query = ' & '.join(query.split())
         
-        stmt = select(LibroDAO).where(
-                    func.to_tsvector("spanish", 
-                            func.concat(LibroDAO.titulo, " ", LibroDAO.autor, " ", LibroDAO.ISSN) # TODO: Add more fields if necessary.
-                        ).bool_op("@@")(
-                            func.to_tsquery("spanish", formatted_query)
-                        )
-                )
+        stmt = select(LibroDAO, EditorialDAO).join(EditorialDAO, LibroDAO.editorial == EditorialDAO.id).where(
+                func.to_tsvector("spanish", 
+                        func.concat(LibroDAO.titulo, " ", LibroDAO.autor, " ", LibroDAO.ISSN, " ", EditorialDAO.editorial, " ", LibroDAO.precio) # Incluir el nombre de la editorial
+                    ).bool_op("@@")(
+                        func.to_tsquery("spanish", formatted_query)
+                    )
+            )
         
         if max_results != -1:
             stmt = stmt.limit(max_results)
@@ -53,10 +53,10 @@ class BookService(Injectable):
 
         # Filtrar por rango de precios
         if filters["min_price"] is not None:
-            stmt = stmt.where(LibroDAO.precio >= filters["min_price"])
+            stmt = stmt.where(LibroDAO.descuento >= filters["min_price"])
 
         if filters["max_price"] is not None:
-            stmt = stmt.where(LibroDAO.precio <= filters["max_price"])
+            stmt = stmt.where(LibroDAO.descuento <= filters["max_price"])
 
         # Filtrar por rango de paginas
         if filters["min_page"] is not None:
@@ -65,11 +65,15 @@ class BookService(Injectable):
         if filters["max_page"] is not None:
             stmt = stmt.where(LibroDAO.num_paginas <= filters["max_page"])
 
-        # Filtrar por fecha de publicación
-        if filters["publication_date"] is not None:
-            publication_date = datetime.strptime(filters["publication_date"], "%Y-%m-%d").date()
-            stmt = stmt.where(LibroDAO.fecha_publicacion == publication_date)
+         # Filtrar por rango de fecha de publicación
+        if filters["start_date"] is not None and filters["end_date"] is not None:
+            start_date = datetime.strptime(filters["start_date"], "%Y-%m-%d").date()
+            end_date = datetime.strptime(filters["end_date"], "%Y-%m-%d").date()
+            stmt = stmt.where(LibroDAO.fecha_publicacion.between(start_date, end_date))
 
+
+
+            
         # Filtrar por estado
         if filters["state"] is not None:
             stmt = stmt.where(LibroDAO.estado == filters["state"])
