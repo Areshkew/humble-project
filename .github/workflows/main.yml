@@ -1,0 +1,42 @@
+name: Deploy FastAPI Backend
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up SSH key
+        run: |
+          env
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ARTIFACT_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p 22 ${{ secrets.ARTIFACT_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to server
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.USER }}@${{ secrets.HOST }} <<'ENDSSH'
+          cd ${{ secrets.APP_PATH }}
+          git pull
+
+          ### Configure the Environment
+          source .venv/bin/activate
+          uv pip install -r requirements.txt
+
+          ### Restart the server
+          # Kill the currently running Python process
+          pkill -f 'python main.py'
+          
+          # Restart the process
+          nohup python main.py &
+          ENDSSH
+
+          
+          
