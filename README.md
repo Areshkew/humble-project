@@ -7,7 +7,10 @@
   ```bash
   pip install -r requirements.txt
   ```
-3. Ejecuta el archivo "main.py" con el comando:
+  
+3. Asegurate que la carpeta 'images' se encuentre en la raiz del proyecto, en esta carpeta se guardaran las imagenes de los libros.
+
+4. Ejecuta el archivo "main.py" con el comando:
   ```bash
     python main.py
   ```
