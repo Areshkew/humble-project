@@ -13,10 +13,10 @@ jobs:
         uses: actions/checkout@v4
         
       - name: Set up SSH
-        uses: Sithi5/remote-ssh-commands-action@1.1.2
+        uses: tiyee/action-ssh@v1.0.1
         with:
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          privateKey: ${{ secrets.SSH_PRIVATE_KEY }}
           host: ${{ secrets.SSH_HOST }}
           port: 22
-          script: ls -la;pwd;echo "Hello World !";mkdir prueba
+          command: 'echo "hola mundo"'
