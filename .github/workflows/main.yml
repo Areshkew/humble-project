@@ -20,7 +20,7 @@ jobs:
 
       - name: Test SSH Connection
         run: |
-          ssh -vvv -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.USER }}@${{ secrets.HOST }} "echo 'SSH connection successful'"
+          ssh -i ~/.ssh/id_rsa ${{ secrets.USER }}@${{ secrets.HOST }} "echo 'SSH connection successful'"
     
       - name: Deploy to server
         env:
@@ -28,7 +28,7 @@ jobs:
           HOST: ${{ secrets.HOST }}
           APP_PATH: ${{ secrets.APP_PATH }}
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa $USER@$HOST <<'ENDSSH'
+          ssh -i ~/.ssh/id_rsa $USER@$HOST <<'ENDSSH'
           cd $APP_PATH
           git pull
 
