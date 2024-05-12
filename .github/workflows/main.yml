@@ -18,21 +18,28 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      - name: Add SSH Host Key
+        run: |
+          ssh-keyscan -t rsa ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+          echo "Host keys added."
+
       - name: Git Pull
         run: |
-          cd ${{ github.workspace }}
-          ssh-keyscan -t rsa ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.PATH }} && git pull origin main"
           echo "Successfully pulled repo."
 
+      - name: Verify Dependencies
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.PATH }} && . .venv/bin/activate && pip install -r requirements.txt"
+          echo "Dependencies verified and installed."
+
+      - name: Check and Kill Existing Process
+        run: |
+          ssh -T ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "pgrep -f 'python main.py' > /dev/null && pkill -f 'python main.py' || echo 'No process found.'"
+          echo "Process check completed."
+
       - name: Restart Backend Server
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.PATH }} && . .venv/bin/activate && ~/.cargo/bin/uv pip install -r requirements.txt"
-          echo "Dependencies verified and installed."
-          
-          ssh -v ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "pgrep -f 'python main.py' > /dev/null && pkill -f 'python main.py' || echo 'No process found.'"
-          echo "Old server process killed."
-
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.PATH }} && . .venv/bin/activate && nohup python main.py &"
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.PATH }} && . .venv/bin/activate && nohup python main.py > /dev/null 2>&1 &"
           echo "Successfully restarted backend server."
           
