@@ -10,13 +10,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         
       - name: Set up SSH
         uses: Sithi5/remote-ssh-commands-action@1.1.2
         with:
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: 22
-          SSH_REMOTE_COMMANDS: ls -la;pwd;echo "Hello World !";mkdir prueba
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          host: ${{ secrets.SSH_HOST }}
+          port: 22
+          script: ls -la;pwd;echo "Hello World !";mkdir prueba
