@@ -30,7 +30,7 @@ jobs:
 
       - name: Verify Dependencies
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.PATH }} && . .venv/bin/activate && pip install -r requirements.txt"
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.PATH }} && . .venv/bin/activate && ~/.cargo/bin/uv pip install -r requirements.txt"
           echo "Dependencies verified and installed."
 
       - name: Check and Kill Existing Process
