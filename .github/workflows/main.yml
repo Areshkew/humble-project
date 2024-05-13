@@ -40,6 +40,6 @@ jobs:
 
       - name: Restart Backend Server
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.PATH }} && . .venv/bin/activate && nohup python main.py > /dev/null 2>&1 &"
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.PATH }} && . .venv/bin/activate && nohup python main.py &"
           echo "Successfully restarted backend server."
           
