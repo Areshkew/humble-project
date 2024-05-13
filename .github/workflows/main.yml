@@ -35,7 +35,7 @@ jobs:
 
       - name: Check and Kill Existing Process
         run: |
-          ssh -T ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "pgrep -f 'python main.py' > /dev/null && pkill -f 'python main.py' || echo 'No process found.'"
+          ssh -T ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "pkill -f 'python main.py'"
           echo "Process check completed."
 
       - name: Restart Backend Server
