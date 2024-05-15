@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Date, Float, ForeignKey
 from db.base_class import Base
 from sqlalchemy.orm import relationship
-
+ 
 class FacturaDAO(Base):
     __tablename__ = 'facturas'
     id = Column(Integer, primary_key=True, unique=True, nullable=False)
