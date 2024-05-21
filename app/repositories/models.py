@@ -6,7 +6,6 @@ from .genre_dao import GeneroDAO
 from .invoice_dao import FacturaDAO
 from .invoicebook_dao import FacturaLibroDAO
 from .paymentmethod_dao import MetodoPagoDAO
-from .paymentmethodtype_dao import TipoMetodoPagoDAO
 from .order_dao import PedidoDAO
 from .publishing_dao import EditorialDAO
 from .reservation_dao import ReservaDAO
