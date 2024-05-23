@@ -1,6 +1,6 @@
 from app.utils.class_utils import Injectable
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, update
 from app.repositories.paymentmethod_dao import MetodoPagoDAO
 from app.repositories.user_dao import UsuarioDAO
 from sqlalchemy.exc import IntegrityError
@@ -67,3 +67,17 @@ class PaymentService(Injectable):
         result = await db.execute(stmt)
         wallet = result.scalars().all()
         return wallet
+    
+    async def add_balance(self, db: AsyncSession, user_id: int, saldo: float):
+        """
+        Añadir saldo a la cuenta del usuario
+        """     
+        try:
+            
+            stmt = update(UsuarioDAO).where(UsuarioDAO.DNI == user_id).values(saldo=UsuarioDAO.saldo + saldo)
+            await db.execute(stmt)
+            await db.commit()
+            return True
+        except Exception as e:
+            await db.rollback()
+            return False
