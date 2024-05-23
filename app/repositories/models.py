@@ -25,6 +25,7 @@ UsuarioDAO.metodos_pago = relationship("MetodoPagoDAO", back_populates="usuario_
 UsuarioDAO.reservas = relationship("ReservaDAO", back_populates="usuario_ref")
 UsuarioDAO.facturas = relationship("FacturaDAO", back_populates="usuario_ref")
 UsuarioDAO.tickets = relationship("TicketDAO", back_populates="usuario_ref")
+UsuarioDAO.ticketsmsg = relationship("TicketMensajeDAO", back_populates="usuario_ref")
 LibroDAO.reservas = relationship("ReservaDAO", back_populates="libro_ref")
 LibroTiendaDAO.facturas_libro = relationship("FacturaLibroDAO", back_populates="libro_tienda_ref")
 FacturaDAO.facturas_libro = relationship("FacturaLibroDAO", back_populates="factura_ref")
