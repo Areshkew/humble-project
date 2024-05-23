@@ -8,6 +8,8 @@ from app.utils.db_utils import get_db_session
 from fastapi import APIRouter, HTTPException, UploadFile, status, Depends, Request
 from fastapi.params import Query
 from sqlalchemy.orm import Session
+import re
+
 
 @inject(BookService)
 class BookController(Injectable):
@@ -19,7 +21,12 @@ class BookController(Injectable):
         self.route.add_api_route("/delete-books", self.delete_books, methods=["POST"])
         self.route.add_api_route("/create-book", self.create_book, methods=["POST"])
         self.route.add_api_route("/edit-book/{ISSN}", self.edit_book, methods=["POST"])
-    
+        self.route.add_api_route("/personal/{id}", self.book_personal_information, methods=["GET"])
+        self.route.add_api_route("/multiple-personal/{list_issn}", self.book_multiple_personal_information, methods=["GET"])
+        self.route.add_api_route("/multiple/{list_issn}", self.book_multiple_information, methods=["GET"])
+        self.route.add_api_route("/reservar/{issn_con_tienda}", self.book_solicitar_reservas, methods=["POST"])
+        self.route.add_api_route("/obtener-reservas/{id}", self.book_obtener_reservas, methods=["GET"])
+        self.route.add_api_route("/cancelar-reserva/{body}", self.book_cancelar_reservas, methods=["POST"])
     
     async def search_books(self, q: str = Query(..., min_length=3, max_length=50), db: Session = Depends(get_db_session)):
         books = await self.bookservice.book_search(db, q)
@@ -188,3 +195,130 @@ class BookController(Injectable):
 
         await self.bookservice.update_book(data, ISSN, db)
         return {"detail": "Se actualizo el libro correctamente.", "success": True}
+    
+    async def book_personal_information(self, id: str, db: Session = Depends(get_db_session)):
+
+        book_personal_info = await self.bookservice.get_personal_information(db, id)
+        if book_personal_info:
+            return book_personal_info
+        else:
+            raise HTTPException(status_code=404, detail="No existen unidades registradas del Libro")
+
+    async def book_multiple_information(self, list_issn: str, db: Session = Depends(get_db_session)):
+        issn_list = list_issn.split(',')
+        books_information = []
+
+        for id in issn_list:
+            book_info = await self.bookservice.get_information(db, id)
+            if book_info and await self.bookservice.get_personal_information(db, book_info['ISSN']) != []:
+                book_info.pop('resenia')
+                books_information.append(book_info)
+
+        if books_information:
+            return books_information
+        else:
+            raise HTTPException(status_code=404, detail="Libro no encontrado")
+        
+    async def book_multiple_personal_information(self, list_issn: str, db: Session = Depends(get_db_session)):
+        issn_list = list_issn.split(',')
+        books_information = {}
+        
+
+        for issn in issn_list:
+            book_personal_info = await self.bookservice.get_personal_information(db, issn)
+            personal_information = []
+
+            if book_personal_info:
+                for book in book_personal_info:
+                    for i in range(0,book['cantidad']):
+                        personal_information.append(str(issn)+ "-"+ str(i+1) + " en "+ book['tienda'])
+
+                books_information[issn] = personal_information
+            else:
+                return 0
+
+        if books_information:
+            return books_information
+        else:
+            raise HTTPException(status_code=404, detail="No existen unidades registradas del Libro")
+        
+    async def book_solicitar_reservas(self, issn_con_tienda: str, db: Session = Depends(get_db_session)):
+        '''
+        Valida y revisa que es posible hacer la reserva, por medio de:
+        - Validar la existencia del libro
+        - Validar que en total no pueda tener más de 5 reservas
+        - Validar que no pueda reservar más de 3 veces el mismo libro
+        '''
+
+        #Se depura las consultas
+        issn_tienda_list = issn_con_tienda.split(',')
+
+        userId = issn_tienda_list[0]
+        issn_tienda_list = issn_tienda_list[1:]
+
+        listaReservas = []
+        for issnYTienda in issn_tienda_list:
+            issnComaTienda = re.sub(r'-.* en ', ',', issnYTienda)
+            partes = issnComaTienda.split(',')
+            listaReservas.append({'ISSN': partes[0], 'Lib': partes[1]})
+
+        #Borrar reservas que ya no estén vigentes
+        await self.bookservice.depure_reservations(db)
+
+        #Verificar existencias
+        personal_information = await self.book_multiple_personal_information(','.join([result['ISSN'] for result in listaReservas]), db)
+        for key in personal_information.keys():
+            if personal_information[key] == []:
+                raise HTTPException(status_code=404, detail=f"No existen unidades de {key}")
+        
+        #Verificar que no haya más reservas
+        reservasVigentes = await self.bookservice.user_reservations(db, userId)
+
+        if len(reservasVigentes) + len(listaReservas) > 5:
+            raise HTTPException(status_code=404, detail=f"Ya tienes {len(reservasVigentes)} libros reservados, no se pueden reservar más de 5")
+        else:
+            issn = []
+            for result in listaReservas:
+                issn.append(result['ISSN'])
+            issn2 = []
+            for result in reservasVigentes:
+                issn2.append(result['id_libro'])
+            
+            conteos = {}
+            for reserva in issn2 + issn:
+                if reserva in conteos:
+                    if conteos[reserva]>=3:
+                        raise HTTPException(status_code=404, detail="No se pueden reservar más de 3 veces el mismo ejemplar")
+                    else:
+                        conteos[reserva] += 1
+                else:
+                    conteos[reserva] = 1
+
+        for reserva in listaReservas:
+            if await self.bookservice.new_reservation(db,userId, reserva) == False:
+                raise HTTPException(status_code=404, detail=f"No existen libros disponibles en {reserva['Lib']}")
+            
+        return {"detail": "Se realizó la reserva correctamente", "success": True}
+
+    async def book_obtener_reservas(self, id: str, db: Session = Depends(get_db_session)):
+        #Borrar reservas que ya no estén vigentes
+        await self.bookservice.depure_reservations(db)
+
+        return await self.bookservice.user_reservations(db, id)
+    
+    async def book_cancelar_reservas(self, body: str, db: Session = Depends(get_db_session)):
+        body = body.split(',')
+        userId = body[0]
+        ISSN = body[1]
+        fecha = body[2]
+        tienda = body[3]
+
+        await self.bookservice.depure_reservations(db)
+
+        if userId and ISSN and fecha and tienda:
+            return await self.bookservice.cancelate_reservation(db, userId, ISSN, fecha, tienda)
+        else:
+            raise HTTPException(status_code=404, detail=f"No se tienen todos los datos para cancelar")
+            
+
+        

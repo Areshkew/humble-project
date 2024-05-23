@@ -2,11 +2,15 @@ from app.repositories.book_dao import LibroDAO
 from app.repositories.bookgenre_dao import LibroGeneroDAO
 from app.repositories.genre_dao import GeneroDAO
 from app.repositories.publishing_dao import EditorialDAO
+from app.repositories.bookshop_dao import LibroTiendaDAO
+from app.repositories.shop_dao import TiendaDAO
+from app.repositories.reservation_dao import ReservaDAO
 from app.utils.class_utils import Injectable
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, asc, desc, delete
+from sqlalchemy import select, func, asc, desc, update, delete, cast, String, Date
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
+from datetime import date, timedelta
 
 class BookService(Injectable):
     async def book_search(self, db: AsyncSession, query: str, max_results: int = 7):
@@ -258,3 +262,152 @@ class BookService(Injectable):
         except IntegrityError:
             await db.rollback()
             return None
+    
+    async def get_personal_information(self, db: AsyncSession, id: str):
+        """
+        Obtener toda la información PERSONAL de un libro por su ID.
+        """
+        
+        book_in_store = await db.execute(
+            select(TiendaDAO.id, LibroTiendaDAO.cantidad)
+            .join(TiendaDAO)
+            .filter(LibroTiendaDAO.ISSN == id)
+        )
+        
+        book_store_info_list = []
+
+        if book_in_store:
+            for tienda_id, cantidad in book_in_store: 
+                
+                tienda = await db.scalar(select(TiendaDAO.nombre).where(TiendaDAO.id == tienda_id))
+
+                book_info = {
+                    "tienda": tienda,
+                    "cantidad": cantidad
+                }
+
+                book_store_info_list.append(book_info)
+            
+            return book_store_info_list
+        else:
+            return None
+
+    async def user_reservations(self, db: AsyncSession, userId: str):
+        stmt = select(
+            ReservaDAO.id_libro,
+            TiendaDAO.nombre,
+            ReservaDAO.fecha_fin
+        ).join(TiendaDAO, ReservaDAO.id_tienda == TiendaDAO.id).filter(
+            ReservaDAO.id_usuario == userId
+        )
+
+        result = await db.execute(stmt)
+        result = result.fetchall()
+
+        reservations = [
+            {
+                "id_libro": row[0],
+                "nombre_tienda": row[1],
+                "fecha_fin": row[2].isoformat()  # Convertir la fecha a string
+            }
+            for row in result
+        ]
+
+        return reservations
+    
+    async def depure_reservations(self, db: AsyncSession):
+        today = date.today()
+    
+        # Crear la consulta para eliminar las reservas con fecha_fin menor a hoy
+        results = await db.execute(select(ReservaDAO.id_tienda, ReservaDAO.id_libro).filter(ReservaDAO.fecha_fin < today))
+        results = results.fetchall()
+        for result in results:
+            await db.execute(
+                update(LibroTiendaDAO)
+                .where(LibroTiendaDAO.id_tienda == result[0], LibroTiendaDAO.ISSN == result[1])
+                .values(cantidad=LibroTiendaDAO.cantidad + 1)
+            )
+        await db.execute(delete(ReservaDAO).where(ReservaDAO.fecha_fin < today))
+        await db.commit()
+
+    async def new_reservation(self, db: AsyncSession, userId, reserva):
+        issn_libro = reserva['ISSN']
+        libreria = reserva['Lib']
+
+        lib_id = await db.execute(
+                select(TiendaDAO.id)
+                .where(TiendaDAO.nombre == libreria)
+            )
+
+        lib_id = lib_id.first()[0]
+
+        print(1)
+        cantidadLibrosDisponibles = await db.execute(
+                select(LibroTiendaDAO.cantidad)
+                .where(
+                    (LibroTiendaDAO.id_tienda == lib_id) & 
+                    (LibroTiendaDAO.ISSN == issn_libro)
+                )
+            )
+        cantidadLibrosDisponibles = cantidadLibrosDisponibles.first()[0]
+        print(2)
+        if cantidadLibrosDisponibles > 0:
+            print(3)
+            await db.execute(
+                update(LibroTiendaDAO)
+                .where(
+                    (LibroTiendaDAO.id_tienda == lib_id) & 
+                    (LibroTiendaDAO.ISSN == issn_libro)
+                )
+                .values(cantidad=LibroTiendaDAO.cantidad - 1)
+            )
+            print(4)
+            nuevaReserva = ReservaDAO(
+                id_usuario = userId,
+                id_libro = issn_libro,
+                id_tienda = lib_id,
+                fecha_fin = date.today() + timedelta(days=1)
+            )
+
+            # Añadir la nueva reserva a la sesión
+            db.add(nuevaReserva)
+            await db.commit()
+            await db.refresh(nuevaReserva)
+            
+            return True
+        else:
+            return False
+        
+    async def cancelate_reservation(self, db: AsyncSession, userId, ISSN, fecha, tienda):
+        fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
+
+        id_tienda = await db.execute(
+            select(TiendaDAO.id)
+            .where(TiendaDAO.nombre == tienda)
+        )
+        id_tienda = id_tienda.fetchall()[0][0]
+
+        reserva = await db.execute(
+            select(ReservaDAO)
+            .where(
+                cast(ReservaDAO.id_usuario, String) == str(userId),
+                cast(ReservaDAO.id_libro, String) == str(ISSN),
+                cast(ReservaDAO.fecha_fin, Date) == fecha_obj,
+                cast(ReservaDAO.id_tienda, String) == str(id_tienda)
+            )
+        )
+        reserva = reserva.scalars().first()
+
+        if reserva:
+            await db.execute(
+                update(LibroTiendaDAO)
+                .where(LibroTiendaDAO.id_tienda == id_tienda, LibroTiendaDAO.ISSN == ISSN)
+                .values(cantidad=LibroTiendaDAO.cantidad + 1)
+            )
+
+            # Elimina la reserva encontrada
+            await db.delete(reserva)
+            await db.commit()
+            return {"status": "success", "message": "Reserva cancelada correctamente."}
+        else:
+            return {"status": "error", "message": "No se encontró la reserva con los datos proporcionados."}

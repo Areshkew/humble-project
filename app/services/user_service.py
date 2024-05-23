@@ -25,6 +25,7 @@ class UserService(Injectable):
         """    
         # Verificar si el usuario Root ya existe
         stmt = select(UsuarioDAO).where(UsuarioDAO.DNI == root_data["DNI"])
+        
         result = await db.execute(stmt)
         existing_user = result.scalars().first()
 
