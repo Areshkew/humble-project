@@ -1,5 +1,4 @@
 from pydantic import BaseModel, Field, validator
-from typing import Optional
 from datetime import  datetime
 
 class Card(BaseModel):
