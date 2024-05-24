@@ -1,6 +1,6 @@
 from app.models.genre_model import Genre
 from pydantic import BaseModel, EmailStr, Field
-from typing import Annotated, Optional, List
+from typing import Annotated, Optional, List, Tuple
 
 class User(BaseModel):
     DNI: Annotated[str, Field(..., min_length=7, max_length=10)]
@@ -54,3 +54,7 @@ class UserUpdate(BaseModel):
 class UserDNIDelete(BaseModel):
     dnis: Annotated[List[Annotated[str, Field(min_length=7, max_length=10)]],
                             Field(default=None, min_items=1, max_items=3)]
+
+class CompraRequest(BaseModel):
+    userId: str = Field(..., min_length=1)
+    booksForShop: List[Tuple[str, str]] = Field(..., min_items=1)

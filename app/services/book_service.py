@@ -5,6 +5,8 @@ from app.repositories.publishing_dao import EditorialDAO
 from app.repositories.bookshop_dao import LibroTiendaDAO
 from app.repositories.shop_dao import TiendaDAO
 from app.repositories.reservation_dao import ReservaDAO
+from app.repositories.user_dao import UsuarioDAO
+from app.repositories.invoice_dao import FacturaDAO
 from app.utils.class_utils import Injectable
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, asc, desc, update, delete, cast, String, Date
@@ -411,3 +413,65 @@ class BookService(Injectable):
             return {"status": "success", "message": "Reserva cancelada correctamente."}
         else:
             return {"status": "error", "message": "No se encontró la reserva con los datos proporcionados."}
+        
+    async def validar_cantidades(self, ISSN, tienda, cantidad, db: AsyncSession):
+        id_tienda = await db.execute(
+            select(TiendaDAO.id)
+            .where(TiendaDAO.nombre == tienda)
+        )
+
+        id_tienda = id_tienda.scalar_one()
+        
+        cantidadBD = await db.execute(
+            select(LibroTiendaDAO.cantidad)
+            .where(
+                LibroTiendaDAO.id_tienda == id_tienda, 
+                LibroTiendaDAO.ISSN == ISSN
+                   )
+        )
+        return cantidad > cantidadBD.scalar_one()
+    
+    async def calcularSaldo(self, issn, db: AsyncSession):
+        saldo = await db.execute(
+            select(LibroDAO.descuento)
+            .where(LibroDAO.ISSN == issn)
+            )
+        
+        return saldo.scalar_one()
+
+    async def realizar_compra(self, userId, issn, tienda, db: AsyncSession):
+        id_tienda = await db.execute(
+            select(TiendaDAO.id)
+            .where(TiendaDAO.nombre == tienda)
+        )
+        id_tienda = id_tienda.scalar_one()
+
+        #Resta el saldo
+        costo = await db.execute(
+            select(LibroDAO.descuento)
+            .where(LibroDAO.ISSN == issn)
+            )
+        
+        costo = costo.scalar_one()
+
+        await db.execute((
+            update(UsuarioDAO)
+            .where(UsuarioDAO.DNI == userId)
+            .values(saldo=UsuarioDAO.saldo - costo)
+            )
+        )
+
+        #Resta la cantidad 
+        await db.execute((
+            update(LibroTiendaDAO)
+            .where(LibroTiendaDAO.ISSN == issn,LibroTiendaDAO.id_tienda == id_tienda)
+            .values(cantidad=LibroTiendaDAO.cantidad - 1)
+            )
+        ) 
+
+        idCambiado = await db.execute(
+            select(LibroTiendaDAO.id)
+            .where(LibroTiendaDAO.ISSN == issn,LibroTiendaDAO.id_tienda == id_tienda)
+        )
+        await db.commit()
+        return idCambiado.first()

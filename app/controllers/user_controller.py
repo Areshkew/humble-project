@@ -2,12 +2,13 @@ from fastapi import APIRouter, HTTPException, status, Depends, Request
 from sqlalchemy.orm import Session
 from app.models.user_model import *
 from app.services.user_service import UserService
+from app.services.book_service import BookService
 from app.services.email_service import EmailService
 from app.utils.auth import create_token
 from app.utils.class_utils import Injectable, inject
 from app.utils.db_utils import get_db_session, verify_password
 
-@inject(UserService, EmailService)
+@inject(UserService, EmailService, BookService)
 class UserController(Injectable):
     def __init__(self):
         self.route = APIRouter(prefix='/user')
@@ -18,6 +19,8 @@ class UserController(Injectable):
         self.route.add_api_route("/newpassword", self.newpassword, methods=["POST"])
         self.route.add_api_route("/getuserdata", self.getuserdata, methods=["POST"])
         self.route.add_api_route("/editaccount", self.editaccount, methods=["POST"])
+        self.route.add_api_route("/saldo/{id}", self.get_saldo, methods=["GET"])
+        self.route.add_api_route("/realizar-compra", self.realizar_compra, methods=["POST"])
 
 
     async def login(self, user: UserLogin, db: Session = Depends(get_db_session)):
@@ -138,3 +141,58 @@ class UserController(Injectable):
         else:
             await self.userservice.update_account(db, data, dni)
             return {"detail": "Se actualizo la cuenta correctamente.", "success": True}
+        
+    async def get_saldo(self, id: str, db: Session = Depends(get_db_session)):
+        saldo = await self.userservice.saldo_user(id, db)
+        
+        if saldo:
+            return saldo
+        else:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Este usuario no tiene saldo")  
+        
+    async def realizar_compra(self, request: CompraRequest, db: Session = Depends(get_db_session)):
+        userId = request.userId
+        booksForShop = request.booksForShop
+
+        count_dict = {}
+
+        for book in booksForShop:
+            if book in count_dict:
+                count_dict[book] += 1
+            else:
+                count_dict[book] = 1
+
+        #Valida que haya unidades suficientes
+        for key in count_dict.keys():
+            if await self.bookservice.validar_cantidades(key[0], key[1], count_dict[key], db):
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="No existen unidades suficientes") 
+        
+        if not booksForShop:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Los libros no han sido enviados")
+        
+        if not userId:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="El usuario no ha sido enviado")  
+        
+        #Valida que si tenga suficiente saldo
+        saldo = 0
+        for book in booksForShop:
+            saldo += await self.bookservice.calcularSaldo(book[0], db)
+        saldoUser = await self.userservice.saldo_user(userId, db)
+
+        if saldoUser < saldo:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="No hay suficiente saldo")
+
+
+        await self.userservice.generar_factura(userId, saldo, db)
+        for book in booksForShop:
+            idBookNuevo = await self.bookservice.realizar_compra(userId, book[0], book[1], db)
+            await self.userservice.generar_factura_libro(idBookNuevo, userId, saldo, db)
+
+        await self.userservice.borrarReservas(userId, db)
+
+        return True

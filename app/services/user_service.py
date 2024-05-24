@@ -2,6 +2,9 @@ from app.repositories.preferences_dao import PreferenciasDAO
 from app.repositories.securitycodes_dao import CodigoSeguridadDAO
 from app.repositories.user_dao import UsuarioDAO
 from app.repositories.userrole_dao import UsuarioRolDAO
+from app.repositories.invoice_dao import FacturaDAO
+from app.repositories.invoicebook_dao import FacturaLibroDAO
+from app.repositories.reservation_dao import ReservaDAO
 from app.utils.class_utils import Injectable
 from app.utils.db_data import generos, roles, root_data
 from app.utils.db_utils import hash_password
@@ -10,6 +13,7 @@ from sqlalchemy import select, delete, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
+from datetime import date
 import logging
 import random
 
@@ -270,3 +274,63 @@ class UserService(Injectable):
         user.clave = hashed_password
         await db.commit()
         return True
+    
+    async def saldo_user(self, id: str, db: AsyncSession) -> str:
+        """
+        Obtiene el saldo
+        """
+        saldo = await db.execute(
+            select(UsuarioDAO.saldo)
+                .where(UsuarioDAO.DNI == id)
+            )
+        
+        if saldo:
+            return saldo.first()[0]
+        else:
+            return None
+        
+    async def generar_factura(self, userId: str, saldo: int, db: AsyncSession):
+        # Crea y añade una nueva factura
+        nueva_factura = FacturaDAO(
+            id_usuario=userId,
+            fecha=date.today(),
+            total=saldo
+        )
+        db.add(nueva_factura)
+
+        # Hacer un commit para asegurar que la factura se guarda en la base de datos
+        await db.commit()
+
+    
+    async def generar_factura_libro(self, idBook, userId, saldo, db: AsyncSession):
+
+        idBook = idBook[0]
+
+        idFactura = await db.execute(
+            select(FacturaDAO.id)
+            .where(
+                FacturaDAO.id_usuario == str(userId),
+                FacturaDAO.fecha == date.today(),
+                FacturaDAO.total == int(saldo)
+            )
+        )
+
+        idFactura = idFactura.first()
+        idFactura = idFactura[0]
+
+        db.add( FacturaLibroDAO(
+            id_factura = idFactura,
+            id_libro = idBook
+            )
+        )
+        # Agregar la nueva factura de libro a la base de datos
+        
+        # Commit para que se refleje en la base de datos
+        await db.commit()
+
+    async def borrarReservas(self, userId, db: AsyncSession):
+        await db.execute(
+            delete(ReservaDAO)
+            .where(ReservaDAO.id_usuario == userId)
+        )
+        await db.commit()
