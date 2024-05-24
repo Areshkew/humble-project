@@ -14,6 +14,7 @@ class PaymentController(Injectable):
         self.route.add_api_route("/card/{card_num}", self.get_card, methods=["GET"])
         self.route.add_api_route("/cards", self.get_cards, methods=["GET"])
         self.route.add_api_route("/wallet", self.get_wallet, methods=["GET"])
+        self.route.add_api_route("/add-balance", self.add_balance, methods=["POST"])
 
 
     async def create_card(self, request: Request, card: Card, db: Session = Depends(get_db_session)):
@@ -60,3 +61,13 @@ class PaymentController(Injectable):
         if not wallet:
             raise HTTPException(status_code=404, detail="Saldo de usuario no encontrado")
         return wallet
+    
+    async def add_balance(self, request: Request, data: dict, db: Session = Depends(get_db_session)):
+        user_id = request.state.payload["sub"]
+        saldo = data["saldo"]
+        
+        success = await self.paymentservice.add_balance(db, user_id, saldo)
+        if not success:
+            raise HTTPException(status_code=400, detail="No se pudo añadir el saldo")
+
+        return { "Success": True }

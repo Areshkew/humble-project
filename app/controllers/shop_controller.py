@@ -13,7 +13,7 @@ class ShopController(Injectable):
         self.route.add_api_route("/create", self.create_shop, methods=["POST"])
         self.route.add_api_route("/delete", self.delete_shop, methods=["POST"])
         self.route.add_api_route("/edit/{shop_id}", self.edit_shop, methods=["POST"])
-        self.route.add_api_route("/{shop_id}", self.shop_information, methods=["GET"])
+        self.route.add_api_route("/{shop_id}", self.shop_information, methods=["POST"])
 
 
     async def get_shops(self, request: Request, db: Session = Depends(get_db_session)):
