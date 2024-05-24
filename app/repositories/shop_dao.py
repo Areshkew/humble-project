@@ -13,3 +13,4 @@ class TiendaDAO(Base):
     hora_cierre = Column(Time, nullable=False)
 
     libros_tienda = relationship("LibroTiendaDAO", back_populates="tienda_ref")
+    reservas = relationship("ReservaDAO", back_populates="tienda_ref")

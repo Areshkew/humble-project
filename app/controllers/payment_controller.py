@@ -17,7 +17,6 @@ class PaymentController(Injectable):
         self.route.add_api_route("/add-balance", self.add_balance, methods=["POST"])
 
 
-
     async def create_card(self, request: Request, card: Card, db: Session = Depends(get_db_session)):
         card_dict = card.model_dump()
 

@@ -18,3 +18,4 @@ class LibroDAO(Base):
     editorial = Column(Integer, ForeignKey('editoriales.id'), nullable=False)
 
     editorial_ref = relationship("EditorialDAO", back_populates="libros")
+    reservas = relationship("ReservaDAO", back_populates="libro_ref")
