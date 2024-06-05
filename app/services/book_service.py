@@ -6,7 +6,8 @@ from app.repositories.bookshop_dao import LibroTiendaDAO
 from app.repositories.shop_dao import TiendaDAO
 from app.repositories.reservation_dao import ReservaDAO
 from app.repositories.user_dao import UsuarioDAO
-from app.repositories.invoice_dao import FacturaDAO
+from app.repositories.return_books import LibrosDevolucionDAO
+from app.repositories.return_code import CodigoDevolucionDAO
 from app.utils.class_utils import Injectable
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, asc, desc, update, delete, cast, String, Date
@@ -475,3 +476,34 @@ class BookService(Injectable):
         )
         await db.commit()
         return idCambiado.first()
+    
+    async def return_book(self, issn: str, shopID: int, codigoDevolucion: str, db: AsyncSession):
+        await db.execute(
+            update(LibroTiendaDAO)
+            .where((LibroTiendaDAO.ISSN == issn) 
+                   & (LibroTiendaDAO.id_tienda == shopID))
+            .values(cantidad=LibroTiendaDAO.cantidad + 1)
+        )
+        await db.commit()
+
+        saldo = await db.execute(
+            select(LibroDAO.descuento)
+            .where(LibroDAO.ISSN == issn)
+        )
+        
+        await db.execute(
+            delete(LibrosDevolucionDAO)
+            .where((LibrosDevolucionDAO.codigo_devolucion == int(codigoDevolucion)) 
+                   & (LibrosDevolucionDAO.id_libro == issn))
+        )
+
+        return saldo.scalar_one_or_none()
+    
+    async def delete_devolution_code(self, code, db: AsyncSession):
+        await db.execute(
+            delete(CodigoDevolucionDAO)
+            .where(CodigoDevolucionDAO.id == int(code))
+        )
+
+        await db.commit()
+        
