@@ -57,4 +57,9 @@ class UserDNIDelete(BaseModel):
 
 class CompraRequest(BaseModel):
     userId: str = Field(..., min_length=1)
+    enviarORecoger: str = Field(...)
     booksForShop: List[Tuple[str, str]] = Field(..., min_items=1)
+
+class DevolucionRequest(BaseModel):
+    userId: str = Field(..., min_length=1)
+    selectedISSNs: List[str] = Field(..., min_items=1)

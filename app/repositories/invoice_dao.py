@@ -10,4 +10,3 @@ class FacturaDAO(Base):
     total = Column(Float, nullable=False)
 
     usuario_ref = relationship("UsuarioDAO", back_populates="facturas")
-    pedidos = relationship("PedidoDAO", back_populates="factura_ref")

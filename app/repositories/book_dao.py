@@ -19,3 +19,4 @@ class LibroDAO(Base):
 
     editorial_ref = relationship("EditorialDAO", back_populates="libros")
     reservas = relationship("ReservaDAO", back_populates="libro_ref")
+    libros_devolucion = relationship("LibrosDevolucionDAO", back_populates="libro_ref")
