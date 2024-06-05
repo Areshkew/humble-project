@@ -2,14 +2,24 @@ from app.repositories.preferences_dao import PreferenciasDAO
 from app.repositories.securitycodes_dao import CodigoSeguridadDAO
 from app.repositories.user_dao import UsuarioDAO
 from app.repositories.userrole_dao import UsuarioRolDAO
+from app.repositories.invoice_dao import FacturaDAO
+from app.repositories.invoicebook_dao import FacturaLibroDAO
+from app.repositories.reservation_dao import ReservaDAO
+from app.repositories.shop_dao import TiendaDAO
+from app.repositories.bookshop_dao import LibroTiendaDAO
+from app.repositories.book_dao import LibroDAO
+from app.repositories.return_code import CodigoDevolucionDAO
+from app.repositories.return_books import LibrosDevolucionDAO
 from app.utils.class_utils import Injectable
 from app.utils.db_data import generos, roles, root_data
 from app.utils.db_utils import hash_password
-from datetime import datetime
-from sqlalchemy import select, delete, func
+from datetime import datetime, timedelta
+from sqlalchemy import select, delete, func, update
+from sqlalchemy.sql import join
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
+from datetime import date
 import logging
 import random
 
@@ -25,6 +35,7 @@ class UserService(Injectable):
         """    
         # Verificar si el usuario Root ya existe
         stmt = select(UsuarioDAO).where(UsuarioDAO.DNI == root_data["DNI"])
+        
         result = await db.execute(stmt)
         existing_user = result.scalars().first()
 
@@ -269,3 +280,251 @@ class UserService(Injectable):
         user.clave = hashed_password
         await db.commit()
         return True
+    
+    async def saldo_user(self, id: str, db: AsyncSession) -> str:
+        """
+        Obtiene el saldo del user por el ID
+        """
+        saldo = await db.execute(
+            select(UsuarioDAO.saldo)
+                .where(UsuarioDAO.DNI == id)
+            )
+        
+        if saldo:
+            return saldo.first()[0]
+        else:
+            return None
+        
+    async def get_user_email(self, id: str, db: AsyncSession) -> str:
+        """
+        Obtiene el email del user por el ID
+        """
+        correo_electronico = await db.execute(
+            select(UsuarioDAO.correo_electronico)
+                .where(UsuarioDAO.DNI == id)
+            )
+        
+        if correo_electronico:
+            return correo_electronico.first()[0]
+        else:
+            return None  
+        
+    async def facturas_user(self, id: str, db: AsyncSession) -> str:
+        """
+        Obtiene las facturas por el ID
+        """
+        facturas = await db.execute(
+            select(FacturaDAO.id)
+                .where(FacturaDAO.id_usuario == id)
+            )
+        facturas = facturas.fetchall()
+
+        if facturas:
+            listaLibros = []
+            i = 0
+            for factura in facturas:
+                informacionFactura = await db.execute( 
+                    select(FacturaLibroDAO.id_libro, FacturaLibroDAO.estado, FacturaLibroDAO.fecha_fin) 
+                    .where(FacturaLibroDAO.id_factura == factura[0]) 
+                    ) 
+                informacionFactura = informacionFactura.fetchall()
+                
+                for libro in informacionFactura:
+                    ISSNyTienda = await db.execute(
+                        select(LibroTiendaDAO.ISSN, LibroTiendaDAO.id_tienda)
+                        .where(LibroTiendaDAO.id == libro[0])
+                    )
+
+                    ISSNyTienda = ISSNyTienda.fetchall()
+                    ISSN = ISSNyTienda[0][0]
+
+                    titulo = await db.execute(
+                        select(LibroDAO.titulo)
+                        .where(LibroDAO.ISSN == ISSN)
+                    )
+
+                    titulo = titulo.fetchall()
+                    titulo = titulo[0][0]
+
+                    nombreTienda = await db.execute(
+                        select(TiendaDAO.nombre)
+                        .where(TiendaDAO.id == ISSNyTienda[0][1])
+                    )
+
+                    nombreTienda = nombreTienda.fetchall()
+                    nombreTienda = nombreTienda[0][0]
+
+                    listaLibros.append([i, ISSN, titulo, nombreTienda, libro[1], libro[2]])
+                
+                i+=1
+
+            return listaLibros
+        else:
+            return None
+        
+        
+    async def generar_factura(self, userId: str, saldo: int, db: AsyncSession):
+        # Crea y añade una nueva factura
+        nueva_factura = FacturaDAO(
+            id_usuario=userId,
+            fecha=date.today(),
+            total=saldo
+        )
+        db.add(nueva_factura)
+
+        # Hacer un commit para asegurar que la factura se guarda en la base de datos
+        await db.commit()
+
+    
+    async def generar_factura_libro(self, idFactura, idBook, estadoEnvio, db: AsyncSession):
+
+        idBook = idBook[0]
+
+        db.add( FacturaLibroDAO(
+            id_factura = idFactura,
+            id_libro = idBook,
+            estado = int(estadoEnvio)
+            )
+        )        
+
+        await db.commit()
+
+    async def buscarFacturaGenerada(self, userId, saldo, db: AsyncSession):
+
+        idFactura = await db.execute(
+            select(FacturaDAO.id)
+            .where(
+                FacturaDAO.id_usuario == str(userId),
+                FacturaDAO.fecha == date.today(),
+                FacturaDAO.total == int(saldo)
+            )
+        )
+
+        idFactura = idFactura.first()
+        idFactura = idFactura[0]
+        
+        return idFactura
+
+    async def borrarReservas(self, userId, db: AsyncSession):
+        await db.execute(
+            delete(ReservaDAO)
+            .where(ReservaDAO.id_usuario == userId)
+        )
+        await db.commit()
+
+    async def generate_registro_devolucion(self, userId, db: AsyncSession):
+        
+        result = '1'
+        while result is not None:
+            codigo = await self.generate_recovery_code()
+            codigo = int(codigo)
+
+
+            result = await db.execute(
+            select(CodigoDevolucionDAO.id)
+            .where(CodigoDevolucionDAO.id == codigo)
+            )
+            
+            result = result.scalars().first()
+
+        db.add( CodigoDevolucionDAO(
+            id = codigo,
+            id_usuario = userId,
+            fecha_fin = datetime.now()
+            )
+        )        
+
+        await db.commit()
+
+        return codigo
+    
+    async def generate_registro_librosADevolver(self, codigo, book, db: AsyncSession):
+
+        db.add( LibrosDevolucionDAO(
+            codigo_devolucion = codigo,
+            id_libro = book
+            )
+        )        
+
+        await db.commit()
+
+    async def depurar_devoluciones(self, db: AsyncSession):
+        result = await db.execute(
+            select(CodigoDevolucionDAO.id)
+            .where(CodigoDevolucionDAO.fecha_fin < datetime.now().date() - timedelta(days=3))
+        )
+
+        ids = [row[0] for row in result.fetchall()]
+
+        for id in ids:
+            await db.execute(
+                delete(LibrosDevolucionDAO)
+                .where(LibrosDevolucionDAO.codigo_devolucion == id)
+            )
+            
+            await db.execute(
+                delete(CodigoDevolucionDAO)
+                .where(CodigoDevolucionDAO.id == id)
+            )
+            
+        await db.commit()        
+
+    async def books_by_devolutionCode(self, codigo, db: AsyncSession):
+        
+        issn_list = await db.execute(
+                select(LibrosDevolucionDAO.id_libro)
+                .where(LibrosDevolucionDAO.codigo_devolucion == int(codigo))
+            )
+        
+        return [row[0] for row in issn_list.fetchall()]
+    
+    async def users_by_devolutionCode(self, codigo, db: AsyncSession):
+        
+        user = await db.execute(
+                select(CodigoDevolucionDAO.id_usuario)
+                .where(CodigoDevolucionDAO.id == int(codigo))
+            )
+        
+        return user.first()[0]
+    
+    async def shopID_by_shopName(self, shopName, db: AsyncSession):
+        
+        shopId = await db.execute(
+                select(TiendaDAO.id)
+                .where(TiendaDAO.nombre == shopName)
+            )
+        
+        return shopId.first()[0]
+    
+    async def changeBookState(self, userId, ISSN, db: AsyncSession):
+        
+        stmt = select(FacturaLibroDAO.id).\
+            join(FacturaDAO).\
+            join(LibroTiendaDAO).\
+            where(
+                FacturaDAO.id_usuario == userId,
+                LibroTiendaDAO.ISSN == ISSN
+            )
+
+        # Ejecutar la consulta y obtener el ID de la factura-libro
+        result = await db.execute(stmt)
+        factura_libro_id = result.scalar()
+
+        # Actualizar el estado del libro usando el ID obtenido
+        await db.execute(
+            update(FacturaLibroDAO).
+            where(FacturaLibroDAO.id == factura_libro_id).
+            values(estado=5)
+        )
+
+        # Hacer commit de la transacción
+        await db.commit()
+
+    async def return_money(self, userId, dinero, db: AsyncSession):
+        await db.execute(
+            update(UsuarioDAO)
+            .where(UsuarioDAO.DNI == userId)
+            .values(saldo = UsuarioDAO.saldo + dinero)
+        )
+
+        await db.commit()
