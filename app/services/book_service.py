@@ -8,6 +8,7 @@ from app.repositories.reservation_dao import ReservaDAO
 from app.repositories.user_dao import UsuarioDAO
 from app.repositories.return_books import LibrosDevolucionDAO
 from app.repositories.return_code import CodigoDevolucionDAO
+from app.repositories.invoicebook_dao import FacturaLibroDAO
 from app.utils.class_utils import Injectable
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, asc, desc, update, delete, cast, String, Date
@@ -507,3 +508,10 @@ class BookService(Injectable):
 
         await db.commit()
         
+    async def marcarTodosLosEnviosComoEntregados(self, db:AsyncSession):
+        await db.execute(
+            update(FacturaLibroDAO)
+            .values(estado = 2)
+        )
+
+        await db.commit()
