@@ -27,6 +27,7 @@ class BookController(Injectable):
         self.route.add_api_route("/reservar/{issn_con_tienda}", self.book_solicitar_reservas, methods=["POST"])
         self.route.add_api_route("/obtener-reservas/{id}", self.book_obtener_reservas, methods=["GET"])
         self.route.add_api_route("/cancelar-reserva/{body}", self.book_cancelar_reservas, methods=["POST"])
+        self.route.add_api_route("/entregarTodos", self.book_entregar_envios, methods=["POST"])
     
     async def search_books(self, q: str = Query(..., min_length=3, max_length=50), db: Session = Depends(get_db_session)):
         books = await self.bookservice.book_search(db, q)
@@ -321,4 +322,5 @@ class BookController(Injectable):
             raise HTTPException(status_code=404, detail=f"No se tienen todos los datos para cancelar")
             
 
-        
+    async def book_entregar_envios(self, db: Session =  Depends(get_db_session)):
+        await self.bookservice.marcarTodosLosEnviosComoEntregados(db)
