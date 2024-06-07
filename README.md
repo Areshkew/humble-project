@@ -36,33 +36,6 @@
 
 2. Lo siguiente es llamar el script desde la carpeta raiz del proyecto, haciendo "python -m scripts.book_population_script", de esta manera se podra ejecutar el script en forma de modulo para que no haya ningun error y ya pueda realizar la populizacion deseada
 
-# Registro De Cambios
-
-Todos los cambios serán documentados en este archivo.
-
-## [Sin lanzar]
-
-
-## [0.0.1] - 2024-03
-
-### Arreglado
-### Añadido
-  #### Desarrollo: 
-    - Utilidad de encriptacion de contraseñas 
-    - Utilidad de desencriptacion de contraseñas
-    - Conexión a la base de datos.
-    - Mapeo de la estructura de la base de datos (repositories), para su uso a través del ORM.
-    - Clase del usuario (models), usada para la verificación de datos en los futuros endpoints.
-    - Controlador del usuario (usercontroller), se usará para la creación de endpoints.
-    - Servicio del usuario (userservice), se usará para crear las operaciones que se podran realizar a través del controlador.
-    - Creación de usuario root al iniciar el servidor. 
-    - Creación de las preferencias de usuario.
-  
-  #### Caracteristicas:
-    - Inicio y registro de cuentas.
-    - Manejo de expiración de sesión.
-    - Manejo de verificación de token.
-
 ### Removido
 ### Cambiado
 
