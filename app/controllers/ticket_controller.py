@@ -1,11 +1,12 @@
 from app.utils.db_utils import get_db_session
 from app.utils.class_utils import Injectable, inject
 from app.services.ticket_service import TicketService
+from app.services.user_service import UserService
 from app.models.ticket_model import TicketCreate, TicketRespond
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
-@inject(TicketService)
+@inject(TicketService, UserService)
 class TicketController(Injectable):
     def __init__(self):
         self.route = APIRouter(prefix='/ticket')
@@ -13,7 +14,7 @@ class TicketController(Injectable):
         self.route.add_api_route("/respond", self.respond_to_ticket, methods=["POST"])
         self.route.add_api_route("/response/{ticket_id}", self.get_ticket_response, methods=["GET"])
         self.route.add_api_route("/delete/{ticket_id}", self.delete_ticket, methods=["POST"])
-
+        self.route.add_api_route("/obtenerUserTickets/{userId}", self.get_user_tickets, methods=["GET"])
 
     async def create_ticket(self, data: TicketCreate, db: Session = Depends(get_db_session)):
         dict = data.model_dump()
@@ -49,3 +50,16 @@ class TicketController(Injectable):
 
         await self.ticketservice.delete_ticket(db, ticket_id)
         return {"detail": "Ticked eliminado con exito", "success": "True"}
+
+
+    async def get_user_tickets(self, userId: str,  db: Session = Depends(get_db_session)):
+        role = await self.userservice.getRoleByID(db, userId)
+
+        if not role:
+            raise HTTPException(status_code=400, detail="El usuario no existe")
+        elif role == 2:
+            userId = "all"
+        elif role != 3:
+            raise HTTPException(status_code=400, detail="El usuario no tiene ese permiso")
+        
+        return await self.ticketservice.get_user_tickets(db, userId)

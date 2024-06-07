@@ -528,3 +528,11 @@ class UserService(Injectable):
         )
 
         await db.commit()
+
+    async def getRoleByID(self, db: AsyncSession, DNI):
+        role =  await db.execute(
+            select(UsuarioDAO.rol)
+            .where(UsuarioDAO.DNI == DNI)
+        )
+
+        return role.scalars().first()
