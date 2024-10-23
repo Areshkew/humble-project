@@ -1,0 +1,87 @@
+name: Deploy Postal
+
+on:
+  workflow_dispatch:
+
+env:
+  POSTAL_PATH: "~/postal"
+  POSTAL_BIN: "~/postal/bin/postal"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add SSH Host to known hosts
+        run: |
+          ssh-keyscan -t rsa ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+          echo "Host keys added."
+        continue-on-error: false
+
+      - name: Update Packages and Install Requirements
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "sudo apt update && sudo apt upgrade && apt install git curl jq"
+          echo "Successfully pulled repo."
+        continue-on-error: false
+
+      - name: Download Postal CLI
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "git clone https://github.com/postalserver/install ${{ env.POSTAL_PATH }}"
+          echo "Postal installed succesfully."
+        continue-on-error: false
+      
+      - name: Start Postal MariaDB Container
+        run: |
+          docker volume create postal-mariadb-data
+          docker run -d \
+            --name postal-mariadb \
+            -p 127.0.0.1:3306:3306 \
+            --restart always \
+            -e MARIADB_DATABASE=postal \
+            -e MARIADB_ROOT_PASSWORD=${{ secrets.MARIADB_ROOT_PASSWORD }} \
+            -v postal-mariadb-data:/var/lib/mysql \
+            mariadb
+        continue-on-error: false
+      
+      - name: Configure Postal with Domain
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "${{ env.POSTAL_PATH }} bootstrap {{ secrets.SSH_HOST }}"
+        continue-on-error: false
+
+      - name: Start database configuration
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "${{ env.POSTAL_PATH }} initialize"
+        continue-on-error: false
+
+      - name: Create Postal User via SSH
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+            script -q -c '${{ env.POSTAL_PATH }} make-user' /dev/null <<EOF
+            ${{ secrets.POSTAL_EMAIL }}
+            ${{ secrets.POSTAL_FNAME }} 
+            ${{ secrets.POSTAL_SNAME }}
+            ${{ secrets.POSTAL_PASSWORD }}
+            EOF
+          "
+        continue-on-error: false
+
+      - name: Start database configuration
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "${{ env.POSTAL_PATH }} initialize"
+        continue-on-error: false
+
+      - name: Start Postal Caddy Container
+        run: |
+          docker run -d \
+            --name postal-caddy \
+            --restart always \
+            --network host \
+            -v /opt/postal/config/Caddyfile:/etc/caddy/Caddyfile \
+            -v /opt/postal/caddy-data:/data \
+            caddy
+        continue-on-error: false
