@@ -87,5 +87,5 @@ jobs:
             -v /opt/postal/config/Caddyfile:/etc/caddy/Caddyfile \
             -v /opt/postal/caddy-data:/data \
             caddy
-         "
+          "
         continue-on-error: false
