@@ -25,7 +25,7 @@ jobs:
 
       - name: Update Packages and Install Requirements
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "sudo apt update && sudo apt upgrade && apt install git curl jq"
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "sudo dnf update && sudo dnf install git curl jq"
           echo "Successfully pulled repo."
         continue-on-error: false
 
