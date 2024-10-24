@@ -38,8 +38,7 @@ jobs:
       - name: Start Postal MariaDB Container
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
-          docker volume create postal-mariadb-data
-          docker run -d \
+          sudo docker run -d \
             --name postal-mariadb \
             -p 127.0.0.1:3306:3306 \
             --restart always \
@@ -80,7 +79,7 @@ jobs:
       - name: Start Postal Caddy Container
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
-          docker run -d \
+          sudo docker run -d \
             --name postal-caddy \
             --restart always \
             --network host \
