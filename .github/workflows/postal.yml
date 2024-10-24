@@ -1,11 +1,11 @@
 name: Deploy Postal
 
-on:
-  workflow_dispatch:
-
 env:
   POSTAL_PATH: "~/postal"
   POSTAL_BIN: "~/postal/bin/postal"
+
+on:
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -25,7 +25,7 @@ jobs:
 
       - name: Update Packages and Install Requirements
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "sudo dnf update -y && sudo dnf install -y git curl jq"
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "sudo apt update && sudo apt upgrade && apt install git curl jq"
           echo "Successfully pulled repo."
         continue-on-error: false
 
@@ -37,6 +37,7 @@ jobs:
       
       - name: Start Postal MariaDB Container
         run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
           docker volume create postal-mariadb-data
           docker run -d \
             --name postal-mariadb \
@@ -46,22 +47,23 @@ jobs:
             -e MARIADB_ROOT_PASSWORD=${{ secrets.MARIADB_ROOT_PASSWORD }} \
             -v postal-mariadb-data:/var/lib/mysql \
             mariadb
+          "
         continue-on-error: false
       
       - name: Configure Postal with Domain
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "${{ env.POSTAL_PATH }} bootstrap {{ secrets.SSH_HOST }}"
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "${{ env.POSTAL_BIN }} bootstrap {{ secrets.SSH_HOST }}"
         continue-on-error: false
 
       - name: Start database configuration
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "${{ env.POSTAL_PATH }} initialize"
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "${{ env.POSTAL_BIN }} initialize"
         continue-on-error: false
 
       - name: Create Postal User via SSH
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
-            script -q -c '${{ env.POSTAL_PATH }} make-user' /dev/null <<EOF
+            script -q -c '${{ env.POSTAL_BIN }} make-user' /dev/null <<EOF
             ${{ secrets.POSTAL_EMAIL }}
             ${{ secrets.POSTAL_FNAME }} 
             ${{ secrets.POSTAL_SNAME }}
@@ -70,13 +72,14 @@ jobs:
           "
         continue-on-error: false
 
-      - name: Start database configuration
+      - name: Start postal
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "${{ env.POSTAL_PATH }} initialize"
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "${{ env.POSTAL_BIN }} start"
         continue-on-error: false
 
       - name: Start Postal Caddy Container
         run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
           docker run -d \
             --name postal-caddy \
             --restart always \
@@ -84,4 +87,5 @@ jobs:
             -v /opt/postal/config/Caddyfile:/etc/caddy/Caddyfile \
             -v /opt/postal/caddy-data:/data \
             caddy
+        "
         continue-on-error: false
